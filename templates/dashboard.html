@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | Bloom{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6 max-w-7xl">
+
+  <!-- Hero -->
+  <div class="rounded-3xl p-6 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-white shadow-sm" style="background:linear-gradient(135deg,#fff5f5,#fde8e8)">
+    <div>
+      <h2 class="text-3xl font-bold text-[#C08081]" style="font-family:'Quicksand',sans-serif">Hello, {{ user.name.split()[0] }} 🌸</h2>
+      <p class="text-gray-500 text-sm mt-1">Your personal cycle companion — always by your side</p>
+    </div>
+    <div class="flex items-center flex-wrap gap-2">
+      <span class="text-white text-xs font-semibold px-4 py-1.5 rounded-full shadow" style="background:linear-gradient(135deg,#FF6F61,#C08081)">
+        {{ cycle_phase }} Phase · Day {{ cycle_day }}
+      </span>
+      {% if is_irregular %}
+      <span class="bg-orange-100 text-orange-700 text-xs font-semibold px-3 py-1.5 rounded-full">⚠️ Irregular Cycle</span>
+      {% endif %}
+      <a href="/log" class="px-5 py-2 bg-[#FF6F61] text-white text-sm rounded-xl hover:bg-[#e05a50] transition shadow-md font-medium flex items-center space-x-2">
+        <i class="fas fa-plus text-xs"></i><span>Log Today</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Quick Predictor -->
+  <div class="bg-white rounded-2xl shadow-sm p-5 mb-6 border border-gray-50">
+    <div class="flex items-center space-x-2 mb-4">
+      <div class="w-8 h-8 rounded-full bg-[#fef6f6] flex items-center justify-center">
+        <i class="fas fa-wand-magic-sparkles text-[#FF6F61] text-sm"></i>
+      </div>
+      <h3 class="font-semibold text-[#C08081]" style="font-family:'Quicksand',sans-serif">Quick Predictor</h3>
+      <span class="text-xs text-gray-400">Override any value to get an instant new prediction</span>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-2">
+      <input id="p-age"   type="number" placeholder="Age"         value="{{ user.age }}"       class="inp">
+      <input id="p-cycle" type="number" placeholder="Avg cycle"   value="{{ user.avg_cycle }}" class="inp">
+      <input id="p-days"  type="number" placeholder="Days since last"                          class="inp">
+      <input id="p-bmi"   type="number" placeholder="BMI" step="0.1" value="{{ user.bmi }}"   class="inp">
+      <select id="p-stress" class="inp"><option value="low">Stress: Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
+      <button onclick="runPredict()" class="col-span-2 md:col-span-1 bg-gradient-to-r from-[#FF6F61] to-[#C08081] text-white rounded-xl py-2 text-sm font-medium hover:opacity-90 transition">
+        🔮 Predict
+      </button>
+    </div>
+    <div id="predict-result" class="mt-3 hidden p-4 bg-[#fef6f6] rounded-xl text-sm text-[#C08081] font-medium border border-[#fde8e8]"></div>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+
+    <!-- Cycle card -->
+    <div class="bg-white rounded-2xl shadow-sm p-5 border border-gray-50 card-hover">
+      <div class="flex justify-between items-start mb-4">
+        <h3 class="font-semibold text-[#C08081]" style="font-family:'Quicksand',sans-serif">Cycle Summary</h3>
+        <div class="w-9 h-9 rounded-full bg-[#fef6f6] flex items-center justify-center">
+          <i class="fas fa-calendar-alt text-[#C08081]"></i>
+        </div>
+      </div>
+      <div class="space-y-2">
+        <div><p class="text-xs text-gray-400 uppercase tracking-wide">Next Period</p>
+          <p class="text-xl font-bold text-[#C08081]">in {{ days_until }} days</p>
+          <p class="text-sm text-gray-500">{{ next_date }}</p>
+        </div>
+        <div class="text-xs text-gray-400">
+          80% window: <span class="text-[#C08081] font-medium">{{ confidence_lo }}–{{ confidence_hi }} days</span>
+        </div>
+        {% if is_irregular %}
+        <p class="text-xs text-orange-500">⚠️ Irregular cycle — window is wider than usual</p>
+        {% endif %}
+        <div>
+          <div class="w-full bg-gray-100 rounded-full h-2 mt-1">
+            <div class="bg-gradient-to-r from-[#FF6F61] to-[#C08081] h-2 rounded-full" style="width:{{ progress }}%"></div>
+          </div>
+          <p class="text-xs text-gray-400 mt-1">{{ progress }}% through current cycle</p>
+        </div>
+        <div class="text-xs text-gray-500">
+          🌺 Fertile: <span class="text-[#C08081] font-medium">{{ fertile_start }} → {{ fertile_end }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wellness tip -->
+    <div class="bg-white rounded-2xl shadow-sm p-5 border border-gray-50 card-hover">
+      <div class="flex justify-between items-start mb-4">
+        <h3 class="font-semibold text-[#C08081]" style="font-family:'Quicksand',sans-serif">Wellness Tip</h3>
+        <div class="w-9 h-9 rounded-full bg-[#fef6f6] flex items-center justify-center">
+          <i class="fas fa-lightbulb text-[#FF6F61]"></i>
+        </div>
+      </div>
+      <p class="text-gray-600 text-sm leading-relaxed">{{ wellness_tip }}</p>
+      <button onclick="sendQuick('Give me more tips for the {{ cycle_phase | lower }} phase')"
+        class="mt-3 text-sm text-[#FF6F61] font-medium hover:underline flex items-center space-x-1">
+        <span>Ask Bloom for more</span><i class="fas fa-arrow-right text-xs ml-1"></i>
+      </button>
+    </div>
+
+    <!-- PCOS / Health alert -->
+    <div class="bg-white rounded-2xl shadow-sm p-5 border border-gray-50 card-hover">
+      <div class="flex justify-between items-start mb-4">
+        <h3 class="font-semibold text-[#C08081]" style="font-family:'Quicksand',sans-serif">Health Alert</h3>
+        <div class="w-9 h-9 rounded-full bg-[#fef6f6] flex items-center justify-center">
+          <i class="fas fa-{% if pcos_risk in ('moderate','high') %}exclamation-triangle text-orange-500{% else %}check-circle text-green-400{% endif %}"></i>
+        </div>
+      </div>
+      {% if pcos_risk == 'high' %}
+        <div class="bg-red-50 border border-red-100 rounded-xl p-3 mb-3">
+          <p class="text-red-700 text-xs font-semibold">🔴 High PCOS Risk</p>
+          {% for r in pcos_reasons %}<p class="text-red-600 text-xs mt-0.5">• {{ r }}</p>{% endfor %}
+        </div>
+        <button onclick="sendQuick('Am I at risk for PCOS? What should I do?')" class="text-sm text-[#FF6F61] font-medium hover:underline">Ask Bloom about PCOS →</button>
+      {% elif pcos_risk == 'moderate' %}
+        <div class="bg-orange-50 border border-orange-100 rounded-xl p-3 mb-3">
+          <p class="text-orange-700 text-xs font-semibold">🟡 Moderate PCOS Risk (score: {{ "%.0f"|format(pcos_score*100) }}%)</p>
+          {% for r in pcos_reasons %}<p class="text-orange-600 text-xs mt-0.5">• {{ r }}</p>{% endfor %}
+        </div>
+        <button onclick="sendQuick('Tell me about moderate PCOS risk and what I can do')" class="text-sm text-[#FF6F61] font-medium hover:underline">Learn more →</button>
+      {% else %}
+        <p class="text-gray-600 text-sm">Your cycle patterns look healthy! Keep logging to track trends.</p>
+        <div class="mt-2 flex items-center space-x-1"><span class="w-2 h-2 rounded-full bg-green-400"></span><span class="text-xs text-green-600 font-medium">Low PCOS risk</span></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Charts & Calendar -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+    <!-- Symptom chart -->
+    <div class="bg-white rounded-2xl shadow-sm p-5 border border-gray-50 card-hover">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-semibold text-[#C08081]" style="font-family:'Quicksand',sans-serif">Symptom Trends</h3>
+        <div class="flex space-x-1">
+          <button onclick="switchChart('line')" id="btn-line" class="chart-btn active-btn">Line</button>
+          <button onclick="switchChart('bar')"  id="btn-bar"  class="chart-btn">Bar</button>
+        </div>
+      </div>
+      <div class="h-52"><canvas id="symptomChart"></canvas></div>
+      <div class="flex flex-wrap justify-center gap-3 mt-3">
+        <div class="legend-item"><div class="w-2.5 h-2.5 rounded-full bg-[#FF6F61] mr-1"></div><span>Cramps</span></div>
+        <div class="legend-item"><div class="w-2.5 h-2.5 rounded-full bg-[#C08081] mr-1"></div><span>Headache</span></div>
+        <div class="legend-item"><div class="w-2.5 h-2.5 rounded-full bg-[#FFB6C1] mr-1"></div><span>Fatigue</span></div>
+        <div class="legend-item"><div class="w-2.5 h-2.5 rounded-full bg-[#FFD700] mr-1"></div><span>Bloating</span></div>
+        <div class="legend-item"><div class="w-2.5 h-2.5 rounded-full bg-[#87CEEB] mr-1"></div><span>Nausea</span></div>
+      </div>
+    </div>
+
+    <!-- Calendar -->
+    <div class="bg-white rounded-2xl shadow-sm p-5 border border-gray-50 card-hover">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-semibold text-[#C08081]" style="font-family:'Quicksand',sans-serif">Cycle Calendar</h3>
+        <a href="/log" class="px-3 py-1.5 bg-[#FF6F61] text-white text-xs rounded-xl hover:bg-[#e05a50] transition flex items-center space-x-1">
+          <i class="fas fa-plus text-xs"></i><span>Add Log</span>
+        </a>
+      </div>
+      <div id="calendar" style="height:240px"></div>
+      <div class="flex flex-wrap justify-center gap-3 mt-3">
+        <div class="legend-item"><div class="w-2.5 h-2.5 rounded-full bg-[#FF6F61] mr-1"></div><span>Period</span></div>
+        <div class="legend-item"><div class="w-2.5 h-2.5 rounded-full bg-[#C08081] mr-1"></div><span>Fertile</span></div>
+        <div class="legend-item"><div class="w-2.5 h-2.5 rounded-full bg-[#87CEEB] mr-1"></div><span>Symptoms</span></div>
+        <div class="legend-item"><div class="w-2.5 h-2.5 rounded-full opacity-40 bg-[#FF6F61] mr-1"></div><span>Confidence window</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mood chart -->
+  <div class="bg-white rounded-2xl shadow-sm p-5 mb-6 border border-gray-50 card-hover">
+    <h3 class="font-semibold text-[#C08081] mb-4" style="font-family:'Quicksand',sans-serif">Mood Distribution (6 months)</h3>
+    <div class="h-40"><canvas id="moodChart"></canvas></div>
+  </div>
+
+  <!-- Recent logs -->
+  <div class="bg-white rounded-2xl shadow-sm p-5 border border-gray-50">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="font-semibold text-[#C08081]" style="font-family:'Quicksand',sans-serif">Recent Logs</h3>
+      <a href="/logs" class="text-sm text-[#FF6F61] font-medium hover:underline">View All →</a>
+    </div>
+    {% if recent_logs %}
+    <div class="overflow-x-auto">
+      <table class="min-w-full">
+        <thead><tr class="bg-[#fef6f6] text-[#C08081] text-xs font-semibold uppercase tracking-wider">
+          <th class="px-4 py-3 text-left rounded-l-xl">Date</th>
+          <th class="px-4 py-3 text-left">Flow</th>
+          <th class="px-4 py-3 text-left">Mood</th>
+          <th class="px-4 py-3 text-left">Symptoms</th>
+          <th class="px-4 py-3 text-left rounded-r-xl">Wellbeing</th>
+        </tr></thead>
+        <tbody class="divide-y divide-gray-50">
+          {% for log in recent_logs %}
+          <tr class="hover:bg-[#fef6f6] transition">
+            <td class="px-4 py-3 text-sm text-gray-600 font-medium">{{ log.log_date.strftime('%b %d, %Y') }}</td>
+            <td class="px-4 py-3">
+              {% if log.flow_intensity and log.flow_intensity != 'none' %}
+              <span class="px-2 py-1 bg-red-50 text-[#FF6F61] text-xs rounded-full capitalize font-medium">🩸 {{ log.flow_intensity }}</span>
+              {% else %}<span class="text-xs text-gray-300">—</span>{% endif %}
+            </td>
+            <td class="px-4 py-3">
+              {% set micons = {'happy':'😊','sad':'😢','angry':'😠','tired':'😴','neutral':'😐'} %}
+              <span class="text-sm">{{ micons.get(log.mood,'😐') }} <span class="text-gray-500 text-xs capitalize">{{ log.mood }}</span></span>
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex flex-wrap gap-1">
+                {% for s in log.symptoms_list[:3] %}<span class="px-2 py-0.5 bg-[#fef6f6] text-[#C08081] text-xs rounded-full capitalize">{{ s }}</span>{% endfor %}
+              </div>
+            </td>
+            <td class="px-4 py-3 text-xs text-gray-400">
+              {% if log.stress %}<div>Stress: <span class="capitalize text-gray-600">{{ log.stress }}</span></div>{% endif %}
+              {% if log.sleep %}<div>Sleep: <span class="capitalize text-gray-600">{{ log.sleep }}</span></div>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+      <div class="text-5xl mb-3">🌱</div>
+      <p class="text-gray-500 text-sm mb-4">No logs yet — start tracking your cycle!</p>
+      <a href="/log" class="inline-block px-5 py-2.5 bg-[#FF6F61] text-white rounded-xl text-sm hover:bg-[#e05a50] transition">Add First Log 🌸</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const chartData      = {{ chart_data | safe }};
+const calendarEvents = {{ calendar_events | safe }};
+
+// Symptom chart
+const symCtx = document.getElementById('symptomChart').getContext('2d');
+let symChart = new Chart(symCtx, {
+  type: 'line',
+  data: {
+    labels: chartData.labels,
+    datasets: [
+      {label:'Cramps',  data:chartData.cramps,   borderColor:'#FF6F61',backgroundColor:'rgba(255,111,97,.1)', tension:.4,fill:true,pointRadius:4},
+      {label:'Headache',data:chartData.headache, borderColor:'#C08081',backgroundColor:'rgba(192,128,129,.1)',tension:.4,fill:true,pointRadius:4},
+      {label:'Fatigue', data:chartData.fatigue,  borderColor:'#FFB6C1',backgroundColor:'rgba(255,182,193,.1)',tension:.4,fill:true,pointRadius:4},
+      {label:'Bloating',data:chartData.bloating, borderColor:'#FFD700',backgroundColor:'rgba(255,215,0,.1)',  tension:.4,fill:true,pointRadius:4},
+      {label:'Nausea',  data:chartData.nausea,   borderColor:'#87CEEB',backgroundColor:'rgba(135,206,235,.1)',tension:.4,fill:true,pointRadius:4},
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.04)'},ticks:{stepSize:1}},x:{grid:{display:false}}}}
+});
+
+function switchChart(type) {
+  symChart.config.type = type; symChart.update();
+  document.getElementById('btn-line').className = type==='line' ? 'chart-btn active-btn' : 'chart-btn';
+  document.getElementById('btn-bar').className  = type==='bar'  ? 'chart-btn active-btn' : 'chart-btn';
+}
+
+// Mood chart
+new Chart(document.getElementById('moodChart').getContext('2d'), {
+  type:'bar',
+  data:{labels:chartData.labels,datasets:[{
+    label:'Mood (avg 1-5)',data:chartData.mood,
+    backgroundColor:chartData.mood.map(v=>v>=4?'rgba(255,111,97,.7)':v>=3?'rgba(192,128,129,.7)':'rgba(135,206,235,.7)'),
+    borderRadius:8,borderSkipped:false
+  }]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{y:{beginAtZero:true,max:5,grid:{color:'rgba(0,0,0,.04)'},
+      ticks:{stepSize:1,callback:v=>['','😢','😐','😊','😄','🥳'][v]||''}},x:{grid:{display:false}}}}
+});
+
+// Calendar
+document.addEventListener('DOMContentLoaded', () => {
+  const cal = new FullCalendar.Calendar(document.getElementById('calendar'), {
+    initialView:'dayGridMonth',
+    headerToolbar:{left:'prev,next',center:'title',right:'today'},
+    height:240, events:calendarEvents,
+    eventClick(info){
+      const p = info.event.extendedProps;
+      alert(`📅 ${info.event.title}\n${info.event.startStr}${p.all_symptoms?'\nSymptoms: '+p.all_symptoms.join(', '):''}${p.cycle_day?'\nCycle day: '+p.cycle_day:''}`);
+    }
+  });
+  cal.render();
+});
+
+// Quick predict
+async function runPredict() {
+  const age  = +document.getElementById('p-age').value   || {{ user.age }};
+  const cyc  = +document.getElementById('p-cycle').value || {{ user.avg_cycle }};
+  const days = +document.getElementById('p-days').value  || 14;
+  const bmi  = +document.getElementById('p-bmi').value   || {{ user.bmi }};
+  const st   = document.getElementById('p-stress').value;
+  const box  = document.getElementById('predict-result');
+  box.textContent = '🔮 Predicting…';
+  box.classList.remove('hidden');
+  try {
+    const res  = await fetch('/api/predict', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({age, cycle_length: cyc, last_period_day: days, bmi, stress: st})
+    });
+    const data = await res.json();
+    box.textContent = data.message || 'Prediction complete!';
+  } catch(e) {
+    box.textContent = 'Could not reach the prediction service.';
+  }
+}
+</script>
+{% endblock %}

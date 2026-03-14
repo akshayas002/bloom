@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Bloom | Menstrual Health{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  <link rel="stylesheet" href="/static/css/bloom.css">
+  {% block head %}{% endblock %}
+</head>
+<body class="min-h-screen" style="background:#fef6f6;font-family:'Poppins',sans-serif">
+
+<!-- Flash messages -->
+{% if flashes %}
+<div class="fixed top-4 right-4 z-[200] space-y-2 max-w-sm w-full">
+  {% for cat, msg in flashes %}
+  <div class="flash-{{ cat }} rounded-xl px-4 py-3 text-sm shadow-lg flex items-center justify-between animate-fade">
+    <span>{{ msg }}</span>
+    <button onclick="this.parentElement.remove()" class="ml-3 opacity-50 hover:opacity-100 text-lg leading-none">×</button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Navbar -->
+<nav class="bg-white shadow-sm py-3 px-6 flex justify-between items-center sticky top-0 z-50">
+  <div class="flex items-center space-x-2">
+    <div class="w-9 h-9 rounded-full bg-gradient-to-r from-[#FF6F61] to-[#C08081] flex items-center justify-center shadow-sm">
+      <i class="fas fa-leaf text-white text-sm"></i>
+    </div>
+    <h1 class="text-2xl font-bold text-[#C08081]" style="font-family:'Quicksand',sans-serif">Bloom</h1>
+    <span class="text-xs text-gray-300 hidden md:inline mt-1">your cycle, your way</span>
+  </div>
+
+  {% if request.session.get('user_id') %}
+  <div class="flex items-center space-x-5">
+    <a href="/dashboard" class="hidden md:flex items-center space-x-1 text-sm text-gray-500 hover:text-[#C08081] transition">
+      <i class="fas fa-home"></i><span class="ml-1">Dashboard</span>
+    </a>
+    <a href="/log" class="hidden md:flex items-center space-x-1 text-sm text-gray-500 hover:text-[#C08081] transition">
+      <i class="fas fa-pen"></i><span class="ml-1">Log</span>
+    </a>
+    <a href="/logs" class="hidden md:flex items-center space-x-1 text-sm text-gray-500 hover:text-[#C08081] transition">
+      <i class="fas fa-list"></i><span class="ml-1">History</span>
+    </a>
+    <div class="relative group">
+      <button class="flex items-center space-x-2 focus:outline-none">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-r from-[#FF6F61] to-[#C08081] flex items-center justify-center text-white text-xs font-bold shadow">
+          {{ request.session.get('user_name','?')[0].upper() }}
+        </div>
+        <i class="fas fa-chevron-down text-xs text-gray-400"></i>
+      </button>
+      <div class="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg py-1 invisible group-hover:visible z-50 border border-gray-100 opacity-0 group-hover:opacity-100 transition-all duration-150">
+        <a href="/dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-[#fef6f6]"><i class="fas fa-tachometer-alt mr-2 text-[#C08081]"></i>Dashboard</a>
+        <a href="/log"       class="block px-4 py-2 text-sm text-gray-700 hover:bg-[#fef6f6]"><i class="fas fa-plus mr-2 text-[#C08081]"></i>Add Log</a>
+        <a href="/logs"      class="block px-4 py-2 text-sm text-gray-700 hover:bg-[#fef6f6]"><i class="fas fa-history mr-2 text-[#C08081]"></i>History</a>
+        <hr class="my-1 border-gray-100">
+        <a href="/logout"    class="block px-4 py-2 text-sm text-gray-700 hover:bg-[#fef6f6]"><i class="fas fa-sign-out-alt mr-2 text-[#FF6F61]"></i>Log out</a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</nav>
+
+<main class="flex-1">{% block content %}{% endblock %}</main>
+
+<!-- Chatbot FAB -->
+{% if request.session.get('user_id') %}
+<div id="chatbot-btn" class="fixed bottom-6 right-6 z-40 cursor-pointer select-none" title="Chat with Bloom AI">
+  <div class="w-14 h-14 rounded-full bg-gradient-to-r from-[#FF6F61] to-[#C08081] flex items-center justify-center shadow-xl hover:shadow-2xl transition bloom-float">
+    <i class="fas fa-seedling text-white text-xl"></i>
+  </div>
+  <span class="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-green-400 rounded-full border-2 border-white"></span>
+</div>
+
+<!-- Chatbot Panel -->
+<div id="chatbot-modal" class="fixed bottom-24 right-4 w-[340px] bg-white rounded-2xl shadow-2xl z-50 hidden border border-gray-100 flex-col overflow-hidden" style="max-height:540px">
+  <!-- Header -->
+  <div class="bg-gradient-to-r from-[#FF6F61] to-[#C08081] p-4 flex justify-between items-center flex-shrink-0">
+    <div class="flex items-center space-x-2">
+      <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+        <i class="fas fa-seedling text-white text-sm"></i>
+      </div>
+      <div>
+        <p class="text-white font-semibold text-sm" style="font-family:'Quicksand',sans-serif">Bloom AI</p>
+        <p class="text-white/70 text-xs">data-aware health companion 🌸</p>
+      </div>
+    </div>
+    <button id="close-chatbot" class="text-white/70 hover:text-white transition"><i class="fas fa-times"></i></button>
+  </div>
+
+  <!-- Messages -->
+  <div id="chat-messages" class="overflow-y-auto p-4 space-y-3 flex-1" style="height:320px">
+    <div class="flex items-start space-x-2">
+      <div class="w-7 h-7 rounded-full bg-[#C08081] flex items-center justify-center text-white flex-shrink-0 text-xs"><i class="fas fa-seedling"></i></div>
+      <div class="bg-[#fef6f6] p-3 rounded-2xl rounded-tl-none max-w-[240px] text-sm text-gray-700 leading-relaxed">
+        Hi! I'm Bloom 🌸 I know your cycle data and can give personalised advice. Ask me anything about your health!
+      </div>
+    </div>
+  </div>
+
+  <!-- Typing indicator -->
+  <div id="bot-thinking" class="hidden px-4 pb-1 flex-shrink-0">
+    <div class="flex items-center space-x-2">
+      <div class="w-7 h-7 rounded-full bg-[#C08081] flex items-center justify-center text-white text-xs flex-shrink-0"><i class="fas fa-seedling"></i></div>
+      <div class="bg-[#fef6f6] px-4 py-3 rounded-2xl rounded-tl-none flex space-x-1 items-center">
+        <span class="typing-dot w-2 h-2 bg-[#C08081] rounded-full"></span>
+        <span class="typing-dot w-2 h-2 bg-[#C08081] rounded-full"></span>
+        <span class="typing-dot w-2 h-2 bg-[#C08081] rounded-full"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick prompts -->
+  <div class="px-4 pb-2 flex flex-wrap gap-1 flex-shrink-0">
+    <button onclick="sendQuick('When is my next period?')"       class="chip">Next period?</button>
+    <button onclick="sendQuick('Am I at risk for PCOS?')"        class="chip">PCOS risk?</button>
+    <button onclick="sendQuick('What phase am I in?')"           class="chip">My phase</button>
+    <button onclick="sendQuick('Tips for my cycle right now')"   class="chip">Cycle tips</button>
+  </div>
+
+  <!-- Input -->
+  <div class="p-3 border-t border-gray-100 flex-shrink-0">
+    <div class="flex items-center space-x-2">
+      <input id="chat-input" type="text" placeholder="Ask Bloom…"
+        class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6F61]/30 focus:border-[#FF6F61] bg-[#fef6f6]">
+      <button id="send-chat-btn"
+        class="w-9 h-9 bg-gradient-to-r from-[#FF6F61] to-[#C08081] rounded-xl flex items-center justify-center text-white hover:opacity-90 transition flex-shrink-0">
+        <i class="fas fa-paper-plane text-xs"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+const chatBtn  = document.getElementById('chatbot-btn');
+const chatModal= document.getElementById('chatbot-modal');
+const closeBtn = document.getElementById('close-chatbot');
+const chatMsgs = document.getElementById('chat-messages');
+const thinking = document.getElementById('bot-thinking');
+const input    = document.getElementById('chat-input');
+
+chatBtn.addEventListener('click', () => {
+  chatModal.classList.toggle('hidden');
+  if (!chatModal.classList.contains('hidden')) input.focus();
+});
+closeBtn.addEventListener('click', () => chatModal.classList.add('hidden'));
+
+function appendMsg(text, role) {
+  const wrap = document.createElement('div');
+  if (role === 'user') {
+    wrap.className = 'flex justify-end';
+    wrap.innerHTML = `<div class="bg-gradient-to-r from-[#FF6F61] to-[#C08081] text-white p-3 rounded-2xl rounded-tr-none max-w-[240px] text-sm leading-relaxed">${escHtml(text)}</div>`;
+  } else {
+    wrap.className = 'flex items-start space-x-2';
+    wrap.innerHTML = `
+      <div class="w-7 h-7 rounded-full bg-[#C08081] flex items-center justify-center text-white flex-shrink-0 text-xs"><i class="fas fa-seedling"></i></div>
+      <div class="bg-[#fef6f6] p-3 rounded-2xl rounded-tl-none max-w-[240px] text-sm text-gray-700 leading-relaxed">${escHtml(text)}</div>`;
+  }
+  chatMsgs.appendChild(wrap);
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+}
+
+function escHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+async function sendMessage(msg) {
+  const text = msg || input.value.trim();
+  if (!text) return;
+  input.value = '';
+  appendMsg(text, 'user');
+  thinking.classList.remove('hidden');
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+  try {
+    const res  = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:text}) });
+    const data = await res.json();
+    thinking.classList.add('hidden');
+    appendMsg(data.response || 'Sorry, something went wrong 🌸', 'bot');
+  } catch {
+    thinking.classList.add('hidden');
+    appendMsg('Connection error — please try again!', 'bot');
+  }
+}
+
+function sendQuick(t) { chatModal.classList.remove('hidden'); setTimeout(()=>sendMessage(t),100); }
+document.getElementById('send-chat-btn').addEventListener('click', ()=>sendMessage());
+input.addEventListener('keydown', e => { if(e.key==='Enter') sendMessage(); });
+</script>
+{% endif %}
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

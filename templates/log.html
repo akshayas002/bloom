@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Log Today | Bloom{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+  <div class="mb-6 flex items-center space-x-3">
+    <a href="/dashboard" class="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center text-[#C08081] hover:bg-[#fef6f6] transition">
+      <i class="fas fa-arrow-left text-sm"></i>
+    </a>
+    <div>
+      <h2 class="text-2xl font-bold text-[#C08081]" style="font-family:'Quicksand',sans-serif">Daily Log 🌸</h2>
+      <p class="text-gray-500 text-sm">Record how you're feeling today</p>
+    </div>
+  </div>
+
+  <form method="POST" action="/log" class="space-y-5">
+
+    <!-- Date -->
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
+      <label class="label">📅 Date</label>
+      <input type="date" name="log_date" value="{{ today }}" required
+        class="inp w-full mt-1">
+    </div>
+
+    <!-- Flow -->
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
+      <label class="label">🩸 Flow Intensity</label>
+      <input type="hidden" name="flow_intensity" id="flow-val" value="none">
+      <div class="grid grid-cols-4 gap-2 mt-2">
+        {% for f,emoji,label in [('none','💧','None'),('light','🩸','Light'),('medium','🩸🩸','Medium'),('heavy','🩸🩸🩸','Heavy')] %}
+        <button type="button" onclick="sel('flow-val','{{f}}',this,'flow-btn')"
+          class="flow-btn sel-btn flex flex-col items-center py-3 border border-gray-200 rounded-xl hover:border-[#FF6F61] transition text-sm">
+          <span>{{emoji}}</span><span class="text-xs text-gray-500 mt-1">{{label}}</span>
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Mood -->
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
+      <label class="label">💭 Mood</label>
+      <input type="hidden" name="mood" id="mood-val" value="neutral">
+      <div class="grid grid-cols-5 gap-2 mt-2">
+        {% for m,e in [('happy','😊'),('sad','😢'),('angry','😠'),('tired','😴'),('neutral','😐')] %}
+        <button type="button" onclick="sel('mood-val','{{m}}',this,'mood-btn')"
+          class="mood-btn sel-btn flex flex-col items-center py-3 border border-gray-200 rounded-xl hover:border-[#FF6F61] transition">
+          <span class="text-2xl">{{e}}</span><span class="text-xs text-gray-500 mt-1 capitalize">{{m}}</span>
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Symptoms -->
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
+      <label class="label">🔵 Symptoms <span class="text-gray-400 font-normal">(select all that apply)</span></label>
+      <div class="flex flex-wrap gap-2 mt-2">
+        {% for s in ['cramps','headache','fatigue','bloating','nausea','back pain','breast tenderness','acne','mood swings','insomnia','spotting','hot flashes'] %}
+        <label class="cursor-pointer">
+          <input type="checkbox" name="symptoms" value="{{ s }}" class="sr-only sym-chk">
+          <span class="sym-lbl px-3 py-1.5 border border-gray-200 rounded-full text-sm text-gray-600 hover:border-[#FF6F61] transition capitalize select-none block">{{ s }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Wellbeing row -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {% for field,id,opts in [
+        ('🧠 Stress','stress',[('low','🟢 Low'),('medium','🟡 Medium'),('high','🔴 High')]),
+        ('🌙 Sleep','sleep',[('low','Less than usual'),('normal','Normal'),('high','More than usual')]),
+        ('💪 Exercise','exercise',[('good','Daily'),('okay','Sometimes'),('bad','None today')])
+      ] %}
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
+        <label class="label">{{ field }}</label>
+        <input type="hidden" name="{{ id }}" id="{{ id }}-val" value="{{ opts[1][0] }}">
+        <div class="space-y-2 mt-2">
+          {% for val,lbl in opts %}
+          <button type="button" onclick="sel('{{ id }}-val','{{ val }}',this,'{{ id }}-btn')"
+            class="{{ id }}-btn sel-btn w-full px-3 py-2 border border-gray-200 rounded-xl text-sm hover:border-[#FF6F61] transition text-left">{{ lbl }}</button>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Notes -->
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
+      <label class="label">📝 Notes <span class="text-gray-400 font-normal">(optional)</span></label>
+      <textarea name="notes" rows="3" placeholder="Any additional notes…"
+        class="inp w-full mt-1 resize-none"></textarea>
+    </div>
+
+    <div class="flex space-x-3">
+      <a href="/dashboard" class="flex-1 py-3 border border-gray-200 text-gray-500 rounded-xl text-sm font-medium text-center hover:bg-gray-50 transition">Cancel</a>
+      <button type="submit" class="flex-1 py-3 bg-gradient-to-r from-[#FF6F61] to-[#C08081] text-white rounded-xl text-sm font-semibold hover:opacity-90 transition shadow-md">
+        <i class="fas fa-save mr-2"></i>Save Log 🌸
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function sel(hidId, val, btn, grp) {
+  document.getElementById(hidId).value = val;
+  document.querySelectorAll('.'+grp).forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+document.querySelectorAll('.sym-chk').forEach(cb=>{
+  cb.addEventListener('change',function(){
+    const l=this.nextElementSibling;
+    l.classList.toggle('bg-[#FF6F61]',this.checked);
+    l.classList.toggle('text-white',this.checked);
+    l.classList.toggle('border-[#FF6F61]',this.checked);
+  });
+});
+</script>
+{% endblock %}

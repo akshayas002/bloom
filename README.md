@@ -1,100 +1,166 @@
-# bloom
+# 🌸 Bloom  — Menstrual Health AI Assistant
 
-# 🌸 AI-Powered Menstrual Cycle Prediction System
-
-An end-to-end **Machine Learning–powered web application** that predicts the number of days until the next menstrual cycle using user-provided health and cycle information.  
-This project demonstrates **ML pipeline design, backend integration using Flask, and a responsive HTML dashboard**.
-
-> ⚠️ **Note:** This project is a prototype built for learning and portfolio purposes, not a medical or clinical tool.
+A full-stack **FastAPI + PostgreSQL** web app for intelligent menstrual health tracking — with PCOS detection, irregular-cycle support, AI-powered chat, and an improved ML prediction model.
 
 ---
 
-## 🚀 Project Overview
+## ✨ Features
 
-Menstrual health data is sensitive and often unavailable due to privacy and ethical constraints.  
-To address this, this project uses **synthetic data** to simulate realistic menstrual cycle patterns and focuses on building a **complete ML system**, rather than clinical accuracy.
-
-The system allows users to:
-- Enter basic cycle and wellness information
-- Get a prediction for the next cycle (in days)
-- View results through an interactive dashboard UI
-
----
-
-## 🧠 How It Works (High Level)
-
-1. **Synthetic dataset** is generated to reflect realistic menstrual cycle patterns  
-2. A **baseline regression model** is trained to predict days until the next cycle  
-3. The trained model is saved using `pickle`  
-4. A **Flask backend API** loads the model and serves predictions  
-5. An **HTML + Tailwind CSS frontend** collects user inputs and displays results  
+| Feature | Detail |
+|---|---|
+| ⚡ **FastAPI backend** | Async Python, auto-generated `/api/docs`, faster than Flask |
+| 🐘 **PostgreSQL support** | Production-ready DB with async SQLAlchemy ORM |
+| 🤖 **Data-aware AI chat** | Bloom AI knows your cycle phase, PCOS risk, symptoms, next prediction |
+| 🔮 **Improved ML model** | Stacked GB + RF → Ridge, 15 features, confidence intervals, irregular-specific sub-model |
+| 📊 **PCOS risk scoring** | Weighted multi-factor score with plain-English reasons |
+| 📅 **Irregular cycle support** | Wider confidence windows, irregular-specific model, adaptive prediction |
+| 🩺 **Confidence intervals** | 80% prediction window shown on dashboard and calendar |
+| 🌺 **Fertile window** | Dynamically computed per-user based on actual cycle length |
 
 ---
 
-## 🛠️ Tech Stack
+## 🏗️ Project Structure
 
-### Machine Learning
-- Python
-- NumPy
-- Pandas
-- Scikit-learn
-
-### Backend
-- Flask
-- Pickle (model serialization)
-
-### Frontend
-- HTML
-- Tailwind CSS
-- JavaScript
-- Chart.js (static visualization)
-- FullCalendar.js (static calendar UI)
-
----
-
-## 📊 Dataset Information
-
-- The dataset used is **synthetically generated**
-- No real user or medical data is used
-- Data generation is based on:
-  - Typical menstrual cycle ranges (21–35 days)
-  - Period duration (3–7 days)
-  - Common symptoms and mood patterns
-
-### Why Synthetic Data?
-- Menstrual health data is highly sensitive
-- Avoids ethical and privacy issues
-- Allows safe demonstration of ML workflows
-
-This choice is **intentional and documented**.
-
----
-
-## 🧮 Model Details
-
-- **Type:** Regression model (baseline)
-- **Target Variable:** Days until next menstrual cycle
-- **Input Features:**
-  - Age
-  - Average cycle length
-  - Days since last period
-  - Mood (encoded)
-  - Flow intensity (encoded)
-  - Primary symptom (encoded)
-
-> The model is designed as a **proof-of-concept**, not for clinical reliability.
+```
+bloom/
+├── main.py                        ← FastAPI app + middleware + lifespan
+├── requirements.txt
+├── Procfile                       ← Railway/Heroku deploy
+├── .env.example
+│
+├── app/
+│   ├── api/
+│   │   ├── auth.py                ← /register /login /logout
+│   │   ├── dashboard.py           ← /dashboard /log /logs /api/predict /api/chart /api/calendar
+│   │   └── chat.py                ← /api/chat (data-aware AI)
+│   ├── core/
+│   │   ├── config.py              ← Pydantic Settings (env vars)
+│   │   ├── database.py            ← Async SQLAlchemy engine + Base
+│   │   └── security.py            ← Password hashing
+│   ├── models/
+│   │   └── db_models.py           ← User, CycleLog, ChatMessage ORM models
+│   ├── schemas/
+│   │   └── schemas.py             ← Pydantic request/response schemas
+│   ├── services/
+│   │   ├── cycle_service.py       ← Prediction, calendar, chart, AI context
+│   │   └── ai_service.py          ← Data-aware Bloom AI + smart fallback
+│   └── ml/
+│       ├── train_model.py         ← Re-train the ML model
+│       └── predictor.py           ← Prediction service (wraps trained model)
+│
+├── models_ml/
+│   ├── bloom_model.pkl            ← Trained stacked ensemble
+│   ├── cycle_model.pkl            ← Original model (backup)
+│   └── menstrual_cycle_dataset.csv
+│
+├── templates/
+│   ├── base.html                  ← Navbar + chatbot widget
+│   ├── auth.html                  ← Login & Register
+│   ├── dashboard.html             ← Full dashboard
+│   ├── log.html                   ← Daily log entry
+│   ├── logs.html                  ← History view
+│   └── 404.html
+│
+└── static/css/
+    └── bloom.css
+```
 
 ---
 
-## 🖥️ Application Features
+## 🚀 Quick Start (Local — SQLite, zero config)
 
-- ML-powered prediction endpoint (`/predict`)
-- Flask-based backend integration
-- Interactive HTML dashboard
-- User-friendly input form
-- Modular and extensible architecture
+```bash
+cd bloom
+python -m venv venv
+source venv/bin/activate      # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+cp .env.example .env
+# Optionally add GROQ_API_KEY for full AI chat
+
+python main.py
+# → http://localhost:8000
+# → API docs: http://localhost:8000/api/docs
+```
 
 ---
 
-## 📂 Project Structure
+## 🐘 Switch to PostgreSQL
 
+1. Install Postgres and create a database:
+   ```sql
+   CREATE DATABASE bloom_db;
+   ```
+
+2. Install the async driver:
+   ```bash
+   pip install asyncpg
+   ```
+
+3. Update `.env`:
+   ```
+   DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/bloom_db
+   ```
+
+4. Restart — tables are auto-created on startup via `create_tables()`.
+
+---
+
+## 🌐 Deploy to Railway (recommended — free tier)
+
+1. Push to GitHub
+2. [railway.app](https://railway.app) → New Project → from GitHub
+3. Add a **PostgreSQL** plugin → Railway auto-sets `DATABASE_URL`
+4. Add env vars: `SECRET_KEY`, `GROQ_API_KEY`
+5. Railway detects `Procfile` — you're live! 🎉
+
+---
+
+## 🌐 Deploy to Render
+
+1. New Web Service → connect repo
+2. Build command: `pip install -r requirements.txt`
+3. Start command: `gunicorn main:app -w 2 -k uvicorn.workers.UvicornWorker`
+4. Add env vars in dashboard
+
+---
+
+## 🤖 Re-train the ML Model
+
+```bash
+python -m app.ml.train_model
+# or
+python app/ml/train_model.py
+```
+
+Outputs `models_ml/bloom_model.pkl` with:
+- **Stacked ensemble**: GradientBoosting + RandomForest → Ridge meta-learner
+- **15 features** including cycle history, variation, BMI, irregularity flags
+- **Quantile models** for 10th/90th percentile confidence intervals
+- **Irregular sub-model** trained specifically on cycles >35 days
+
+---
+
+## 🤖 AI Chatbot
+
+Bloom uses **Groq LLaMA-3 8B** and injects your actual data into every prompt:
+- Current cycle phase and day
+- Next period prediction with confidence window
+- PCOS risk level and reasons
+- Most frequent recent symptoms
+- Dominant mood this month
+
+Get a free key at [console.groq.com](https://console.groq.com) and add it to `.env`.
+Without a key, Bloom falls back to rich personalised rule-based responses.
+
+---
+
+## 🎨 Design System
+
+| Token | Value |
+|---|---|
+| Coral primary | `#FF6F61` |
+| Mauve accent | `#C08081` |
+| Blush background | `#fef6f6` |
+| Heading font | Quicksand |
+| Body font | Poppins |
