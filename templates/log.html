@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}Log Today — Bloom{% endblock %}
+{% set active_page = 'log' %}
+
+{% block content %}
+<div class="dash-layout">
+  <aside class="sidebar">
+    <div style="padding:0 6px 12px;border-bottom:1px solid var(--border);margin-bottom:8px">
+      <div style="font-size:0.78rem;color:var(--text-muted)">Signed in as</div>
+      <div style="font-weight:600;font-size:0.9rem;color:var(--text-primary)">{{ user.name }}</div>
+    </div>
+    <div class="sidebar-section-title">Main</div>
+    <a href="/dashboard" class="sidebar-link"><span class="icon">🏠</span> Dashboard</a>
+    <a href="/log"       class="sidebar-link active"><span class="icon">✏️</span> Log Today</a>
+    <a href="/logs"      class="sidebar-link"><span class="icon">📋</span> History</a>
+    <div class="sidebar-section-title">Features</div>
+    <a href="/kits"  class="sidebar-link"><span class="icon">📦</span> Care Kits</a>
+  </aside>
+
+  <main class="dash-main" style="max-width:680px">
+    <div style="margin-bottom:1.75rem" class="fade-up">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+        <a href="/dashboard" class="btn btn-icon btn-ghost" style="border-radius:var(--radius-md)">
+          <i class="fa-solid fa-arrow-left fa-sm"></i>
+        </a>
+        <h1 style="font-family:var(--font-display);font-size:1.8rem;color:var(--text-primary)">Daily Log</h1>
+      </div>
+      <p style="color:var(--text-muted);font-size:0.875rem;margin-left:50px">Record how you're feeling — every entry makes predictions smarter.</p>
+    </div>
+
+    <form method="POST" action="/log" id="log-form">
+
+      <!-- Date -->
+      <div class="card fade-up" style="margin-bottom:14px">
+        <div class="card-body">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label"><i class="fa-solid fa-calendar-day fa-xs" style="color:var(--coral)"></i> Date</label>
+            <input type="date" name="log_date" id="log_date" value="{{ today }}" class="form-input" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flow -->
+      <div class="card fade-up" style="margin-bottom:14px">
+        <div class="card-header"><span class="card-title">🩸 Flow Intensity</span></div>
+        <div class="card-body">
+          <input type="hidden" name="flow_intensity" id="flow_val" value="none">
+          <div style="display:flex;gap:8px">
+            {% for val, emoji, label in [('none','💧','None'),('light','🩸','Light'),('medium','🩸🩸','Medium'),('heavy','🩸🩸🩸','Heavy')] %}
+            <button type="button" class="flow-btn" data-flow="{{ val }}" onclick="setFlow('{{ val }}',this)">
+              <div style="font-size:1.2rem">{{ emoji }}</div>
+              <div style="font-size:0.75rem;margin-top:3px;color:inherit">{{ label }}</div>
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Mood -->
+      <div class="card fade-up" style="margin-bottom:14px">
+        <div class="card-header"><span class="card-title">💭 How are you feeling?</span></div>
+        <div class="card-body">
+          <input type="hidden" name="mood" id="mood_val" value="neutral">
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+            {% for val, emoji, label in [('happy','😊','Happy'),('neutral','😐','Okay'),('tired','😴','Tired'),('sad','😢','Sad'),('angry','😠','Irritable')] %}
+            <button type="button" class="mood-btn" data-mood="{{ val }}" onclick="setMood('{{ val }}',this)">
+              <span class="mood-emoji">{{ emoji }}</span>
+              <span class="mood-label">{{ label }}</span>
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Symptoms -->
+      <div class="card fade-up" style="margin-bottom:14px">
+        <div class="card-header">
+          <span class="card-title">🔵 Symptoms</span>
+          <span style="font-size:0.78rem;color:var(--text-muted)">Select all that apply</span>
+        </div>
+        <div class="card-body">
+          <div class="pill-group">
+            {% for s in ['cramps','headache','fatigue','bloating','nausea','back pain','breast tenderness','acne','mood swings','insomnia','spotting','hot flashes','pelvic pain','dizziness'] %}
+            <label style="cursor:pointer">
+              <input type="checkbox" name="symptoms" value="{{ s }}" style="display:none" class="sym-input">
+              <span class="sym-chip">{{ s }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Wellbeing trio -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
+
+        <!-- Stress -->
+        <div class="card fade-up">
+          <div class="card-header" style="padding:1rem"><span class="card-title" style="font-size:0.95rem">🧠 Stress</span></div>
+          <div class="card-body" style="padding:0.75rem">
+            <input type="hidden" name="stress" id="stress_val" value="medium">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              {% for val,icon,label in [('low','🟢','Low'),('medium','🟡','Medium'),('high','🔴','High')] %}
+              <button type="button" class="stress-btn" data-val="{{ val }}" onclick="setSingle('stress_val','{{ val }}',this,'stress-btn')"
+                style="padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius-md);background:white;cursor:pointer;font-size:0.8rem;font-family:var(--font-body);color:var(--text-secondary);text-align:left;transition:all 0.15s;display:flex;align-items:center;gap:6px">
+                {{ icon }} {{ label }}
+              </button>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Sleep -->
+        <div class="card fade-up">
+          <div class="card-header" style="padding:1rem"><span class="card-title" style="font-size:0.95rem">🌙 Sleep</span></div>
+          <div class="card-body" style="padding:0.75rem">
+            <input type="hidden" name="sleep" id="sleep_val" value="normal">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              {% for val,icon,label in [('low','😪','Less than usual'),('normal','😴','Normal'),('high','💤','More than usual')] %}
+              <button type="button" class="sleep-btn" data-val="{{ val }}" onclick="setSingle('sleep_val','{{ val }}',this,'sleep-btn')"
+                style="padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius-md);background:white;cursor:pointer;font-size:0.78rem;font-family:var(--font-body);color:var(--text-secondary);text-align:left;transition:all 0.15s;display:flex;align-items:center;gap:6px">
+                {{ icon }} {{ label }}
+              </button>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Exercise -->
+        <div class="card fade-up">
+          <div class="card-header" style="padding:1rem"><span class="card-title" style="font-size:0.95rem">💪 Exercise</span></div>
+          <div class="card-body" style="padding:0.75rem">
+            <input type="hidden" name="exercise" id="exercise_val" value="okay">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              {% for val,icon,label in [('good','🏃','Active today'),('okay','🚶','Light movement'),('bad','🛋️','Rest day')] %}
+              <button type="button" class="exercise-btn" data-val="{{ val }}" onclick="setSingle('exercise_val','{{ val }}',this,'exercise-btn')"
+                style="padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius-md);background:white;cursor:pointer;font-size:0.78rem;font-family:var(--font-body);color:var(--text-secondary);text-align:left;transition:all 0.15s;display:flex;align-items:center;gap:6px">
+                {{ icon }} {{ label }}
+              </button>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="card fade-up" style="margin-bottom:20px">
+        <div class="card-header"><span class="card-title">📝 Notes <span style="font-family:var(--font-body);font-weight:400;font-size:0.82rem;color:var(--text-muted)">(optional)</span></span></div>
+        <div class="card-body">
+          <textarea name="notes" class="form-input form-textarea" placeholder="Anything else worth remembering today…"></textarea>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:10px" class="fade-up">
+        <a href="/dashboard" class="btn btn-ghost" style="flex:1;justify-content:center">Cancel</a>
+        <button type="submit" class="btn btn-primary" style="flex:2">
+          <i class="fa-solid fa-floppy-disk fa-sm"></i> Save Log
+        </button>
+      </div>
+    </form>
+  </main>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function setFlow(val, btn) {
+  document.getElementById('flow_val').value = val;
+  document.querySelectorAll('.flow-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function setMood(val, btn) {
+  document.getElementById('mood_val').value = val;
+  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function setSingle(hidId, val, btn, cls) {
+  document.getElementById(hidId).value = val;
+  document.querySelectorAll('.'+cls).forEach(b => {
+    b.style.background = 'white';
+    b.style.borderColor = 'var(--border)';
+    b.style.color = 'var(--text-secondary)';
+  });
+  btn.style.background = 'var(--blush)';
+  btn.style.borderColor = 'var(--coral-light)';
+  btn.style.color = 'var(--coral)';
+}
+// Symptom checkboxes
+document.querySelectorAll('.sym-input').forEach(cb => {
+  cb.addEventListener('change', function() {
+    const chip = this.nextElementSibling;
+    chip.classList.toggle('active', this.checked);
+  });
+});
+</script>
+{% endblock %}

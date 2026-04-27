@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Bloom — Your Cycle, Your Way{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/static/css/bloom.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js" defer></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  {% block head %}{% endblock %}
+  {% block styles %}{% endblock %}
+</head>
+<body class="page-wrap">
+
+  {# ── Flash messages ── #}
+  {% if flashes %}
+  <div style="position:fixed;top:16px;right:16px;z-index:500;display:flex;flex-direction:column;gap:8px;max-width:360px;width:calc(100% - 32px)">
+    {% for cat, msg in flashes %}
+    <div class="flash flash-{{ cat }}">
+      <span>{{ msg }}</span>
+      <button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:inherit;opacity:0.6;font-size:16px;line-height:1;padding:0 0 0 8px">×</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# ── Navbar ── #}
+  <nav class="navbar">
+    <a href="{% if request.session.get('user_id') %}/dashboard{% else %}/{% endif %}" class="navbar-brand">
+      <div class="navbar-brand-icon">🌸</div>
+      <span class="navbar-brand-name">Bloom</span>
+    </a>
+
+    {% if request.session.get('user_id') %}
+    <ul class="navbar-links">
+      <li><a href="/dashboard" class="{% if active_page == 'dashboard' %}active{% endif %}"><i class="fa-solid fa-house fa-sm"></i> Home</a></li>
+      <li><a href="/log" class="{% if active_page == 'log' %}active{% endif %}"><i class="fa-solid fa-pen-to-square fa-sm"></i> Log</a></li>
+      <li><a href="/logs" class="{% if active_page == 'logs' %}active{% endif %}"><i class="fa-solid fa-clock-rotate-left fa-sm"></i> History</a></li>
+      <li><a href="/kits" class="{% if active_page == 'kits' %}active{% endif %}"><i class="fa-solid fa-box-heart fa-sm"></i> Kits</a></li>
+    </ul>
+
+    <div class="navbar-actions" style="position:relative">
+      <button class="avatar-btn" id="avatar-btn" aria-label="Account menu">
+        {{ request.session.get('user_name', 'U')[0].upper() }}
+      </button>
+      <div class="nav-dropdown" id="nav-dropdown">
+        <div style="padding:12px 16px 8px; border-bottom:1px solid var(--border)">
+          <div style="font-weight:600;font-size:0.9rem;color:var(--text-primary)">{{ request.session.get('user_name','User') }}</div>
+          <div style="font-size:0.78rem;color:var(--text-muted)">Bloom member</div>
+        </div>
+        <a href="/dashboard" class="nav-dropdown-item"><i class="fa-solid fa-house fa-sm" style="width:16px"></i> Dashboard</a>
+        <a href="/log"       class="nav-dropdown-item"><i class="fa-solid fa-pen fa-sm" style="width:16px"></i> Add Log</a>
+        <a href="/logs"      class="nav-dropdown-item"><i class="fa-solid fa-list fa-sm" style="width:16px"></i> History</a>
+        <a href="/kits"      class="nav-dropdown-item"><i class="fa-solid fa-box-heart fa-sm" style="width:16px"></i> Kits</a>
+        <div class="nav-dropdown-divider"></div>
+        <a href="/logout"    class="nav-dropdown-item danger"><i class="fa-solid fa-right-from-bracket fa-sm" style="width:16px"></i> Sign out</a>
+      </div>
+    </div>
+    {% else %}
+    <div class="navbar-actions">
+      <a href="/login"    class="btn btn-ghost btn-sm">Sign in</a>
+      <a href="/register" class="btn btn-primary btn-sm">Get started</a>
+    </div>
+    {% endif %}
+  </nav>
+
+  {# ── Main content ── #}
+  {% block content %}{% endblock %}
+
+  {# ── Chatbot ── #}
+  {% if request.session.get('user_id') %}
+  <div style="position:fixed;bottom:20px;right:20px;z-index:150;display:flex;flex-direction:column;align-items:flex-end;gap:12px">
+
+    <!-- Chat panel -->
+    <div class="chat-panel hidden" id="chat-panel">
+      <div class="chat-header">
+        <div class="chat-header-info">
+          <div class="chat-avatar">🌸</div>
+          <div>
+            <div class="chat-name">Bloom AI</div>
+            <div class="chat-status">✦ Data-aware · Always here</div>
+          </div>
+        </div>
+        <button class="chat-close" id="chat-close">×</button>
+      </div>
+
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-bubble-wrap">
+          <div class="chat-micro-avatar">🌸</div>
+          <div class="chat-bubble bot">Hi! I'm Bloom 🌸 I know your cycle data and I'm here to help. Ask me anything!</div>
+        </div>
+      </div>
+
+      <div id="chat-thinking" style="display:none;padding:0 16px 8px">
+        <div class="chat-bubble-wrap">
+          <div class="chat-micro-avatar">🌸</div>
+          <div class="chat-bubble bot">
+            <div class="typing-dots"><span></span><span></span><span></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-chips">
+        <button class="chat-chip" onclick="quickSend('When is my next period?')">Next period?</button>
+        <button class="chat-chip" onclick="quickSend('What phase am I in?')">My phase</button>
+        <button class="chat-chip" onclick="quickSend('Tips for cramp relief')">Cramp relief</button>
+        <button class="chat-chip" onclick="quickSend('Am I at risk for PCOS?')">PCOS risk?</button>
+      </div>
+
+      <div class="chat-input-wrap">
+        <input class="chat-input" id="chat-input" type="text" placeholder="Ask Bloom…">
+        <button class="chat-send" id="chat-send">
+          <i class="fa-solid fa-paper-plane fa-xs"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- FAB -->
+    <button class="chat-fab" id="chat-fab">
+      <i class="fa-solid fa-seedling" style="color:white;font-size:18px"></i>
+      <div class="chat-fab-dot"></div>
+    </button>
+  </div>
+
+  <script>
+    /* ── Chat ── */
+    const fab   = document.getElementById('chat-fab');
+    const panel = document.getElementById('chat-panel');
+    const close = document.getElementById('chat-close');
+    const msgs  = document.getElementById('chat-messages');
+    const input = document.getElementById('chat-input');
+    const think = document.getElementById('chat-thinking');
+    const send  = document.getElementById('chat-send');
+
+    fab.addEventListener('click', () => { panel.classList.toggle('hidden'); if(!panel.classList.contains('hidden')) input.focus(); });
+    close.addEventListener('click', () => panel.classList.add('hidden'));
+
+    function escHtml(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+
+    function appendMsg(text, role) {
+      const wrap = document.createElement('div');
+      wrap.className = 'chat-bubble-wrap' + (role==='user' ? ' user' : '');
+      if (role === 'user') {
+        wrap.innerHTML = `<div class="chat-bubble user">${escHtml(text)}</div>`;
+      } else {
+        wrap.innerHTML = `<div class="chat-micro-avatar">🌸</div><div class="chat-bubble bot">${escHtml(text)}</div>`;
+      }
+      msgs.appendChild(wrap);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    async function sendMsg(text) {
+      const msg = text || input.value.trim();
+      if (!msg) return;
+      input.value = '';
+      appendMsg(msg, 'user');
+      think.style.display = 'block';
+      msgs.scrollTop = msgs.scrollHeight;
+      try {
+        const r = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:msg}) });
+        const d = await r.json();
+        think.style.display = 'none';
+        appendMsg(d.response || 'Something went wrong 🌸', 'bot');
+      } catch {
+        think.style.display = 'none';
+        appendMsg('Connection error — please try again!', 'bot');
+      }
+    }
+
+    function quickSend(t) { panel.classList.remove('hidden'); setTimeout(() => sendMsg(t), 80); }
+    send.addEventListener('click', () => sendMsg());
+    input.addEventListener('keydown', e => { if(e.key==='Enter') sendMsg(); });
+
+    /* ── Dropdown ── */
+    const avatarBtn = document.getElementById('avatar-btn');
+    const dropdown  = document.getElementById('nav-dropdown');
+    if (avatarBtn && dropdown) {
+      avatarBtn.addEventListener('click', e => { e.stopPropagation(); dropdown.classList.toggle('open'); });
+      document.addEventListener('click', () => dropdown.classList.remove('open'));
+    }
+  </script>
+  {% endif %}
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

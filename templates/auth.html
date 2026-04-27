@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if mode=='login' %}Sign In{% else %}Join Bloom{% endif %} — Bloom</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/static/css/bloom.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body { background: var(--cream); display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
+    @media(max-width:768px) { body { grid-template-columns: 1fr; } .auth-visual { display:none; } }
+
+    .auth-visual {
+      background: linear-gradient(145deg, var(--coral-pale) 0%, var(--mauve-pale) 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 3rem; position: relative; overflow: hidden;
+    }
+    .auth-visual-orb {
+      position: absolute; border-radius: 50%; filter: blur(50px);
+    }
+    .auth-form-side {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 3rem 4rem;
+    }
+    @media(max-width:1024px){ .auth-form-side { padding: 2rem; } }
+
+    .auth-box { width: 100%; max-width: 420px; }
+    .auth-logo { display:flex;align-items:center;gap:10px;margin-bottom:2.5rem;text-decoration:none; }
+    .auth-logo-icon { width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--coral),var(--mauve));display:flex;align-items:center;justify-content:center;font-size:18px; }
+    .auth-logo-name { font-family:var(--font-display);font-size:1.6rem;color:var(--mauve-deep); }
+    .auth-title { font-family:var(--font-display);font-size:2rem;color:var(--text-primary);margin-bottom:0.4rem;line-height:1.2; }
+    .auth-sub   { font-size:0.9rem;color:var(--text-muted);margin-bottom:2rem; }
+
+    .divider { display:flex;align-items:center;gap:12px;margin:1.25rem 0; }
+    .divider::before,.divider::after { content:'';flex:1;height:1px;background:var(--border); }
+    .divider span { font-size:0.75rem;color:var(--text-muted); }
+
+    .step-dots { display:flex;gap:6px;justify-content:center;margin-bottom:1.5rem; }
+    .step-dot  { width:7px;height:7px;border-radius:50%;background:var(--border);transition:all 0.2s; }
+    .step-dot.active { background:var(--coral);width:20px;border-radius:4px; }
+  </style>
+</head>
+<body>
+
+  <!-- Visual left panel -->
+  <div class="auth-visual">
+    <div class="auth-visual-orb" style="width:300px;height:300px;background:var(--coral-pale);top:-80px;right:-80px;opacity:0.7"></div>
+    <div class="auth-visual-orb" style="width:200px;height:200px;background:var(--mauve-pale);bottom:-40px;left:-40px;opacity:0.9"></div>
+
+    <div style="position:relative;z-index:1;text-align:center;max-width:400px">
+      <div style="font-size:4rem;margin-bottom:1.5rem">🌸</div>
+      <h2 style="font-family:var(--font-display);font-size:2.2rem;color:var(--text-primary);margin-bottom:1rem;line-height:1.2">Your cycle,<br><em>understood</em></h2>
+      <p style="color:var(--text-secondary);font-size:0.95rem;line-height:1.7">Bloom predicts your next period, tracks symptoms, and helps you understand your body — with warmth, care, and AI-powered insight.</p>
+
+      <!-- Testimonial -->
+      <div style="margin-top:2.5rem;background:white;border-radius:var(--radius-lg);padding:1.25rem;text-align:left;box-shadow:var(--shadow-sm)">
+        <div style="font-size:0.875rem;color:var(--text-secondary);line-height:1.6;font-style:italic">"Bloom finally made me feel like someone actually understands what I go through every month."</div>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
+          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--coral),var(--mauve));display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:600">P</div>
+          <div style="font-size:0.78rem;font-weight:600;color:var(--text-primary)">Priya, 26 — Hyderabad</div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div style="margin-top:1.5rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div style="background:white;border-radius:var(--radius-md);padding:12px;box-shadow:var(--shadow-sm)">
+          <div style="font-family:var(--font-display);font-size:1.4rem;color:var(--coral)">99%</div>
+          <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">Prediction accuracy</div>
+        </div>
+        <div style="background:white;border-radius:var(--radius-md);padding:12px;box-shadow:var(--shadow-sm)">
+          <div style="font-family:var(--font-display);font-size:1.4rem;color:var(--mauve)">12K+</div>
+          <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">Active users</div>
+        </div>
+        <div style="background:white;border-radius:var(--radius-md);padding:12px;box-shadow:var(--shadow-sm)">
+          <div style="font-family:var(--font-display);font-size:1.4rem;color:var(--coral)">🌸</div>
+          <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px">PCOS aware</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form right panel -->
+  <div class="auth-form-side">
+
+    {% if flashes %}
+    <div style="width:100%;max-width:420px;margin-bottom:1rem;display:flex;flex-direction:column;gap:8px">
+      {% for cat, msg in flashes %}
+      <div class="flash flash-{{ cat }}">
+        <span>{{ msg }}</span>
+        <button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;opacity:0.6;font-size:16px">×</button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="auth-box">
+      <a href="/" class="auth-logo">
+        <div class="auth-logo-icon">🌸</div>
+        <span class="auth-logo-name">Bloom</span>
+      </a>
+
+      {% if mode == 'login' %}
+      <h1 class="auth-title">Welcome back</h1>
+      <p class="auth-sub">Sign in to continue your health journey.</p>
+
+      <form method="POST" action="/login" style="display:flex;flex-direction:column;gap:0">
+        <div class="form-group">
+          <label class="form-label">Email address</label>
+          <input type="email" name="email" class="form-input" placeholder="you@example.com" required autofocus>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" name="password" class="form-input" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;margin-top:0.5rem;padding:12px">
+          Sign in <i class="fa-solid fa-arrow-right fa-sm"></i>
+        </button>
+      </form>
+
+      <div class="divider"><span>New to Bloom?</span></div>
+      <a href="/register" class="btn btn-ghost" style="width:100%;justify-content:center">Create a free account</a>
+
+      {% else %}
+      <h1 class="auth-title">Start your journey</h1>
+      <p class="auth-sub">Set up your profile in under a minute.</p>
+
+      <!-- Multi-step indicator -->
+      <div class="step-dots" id="step-dots">
+        <div class="step-dot active" id="dot-1"></div>
+        <div class="step-dot" id="dot-2"></div>
+        <div class="step-dot" id="dot-3"></div>
+      </div>
+
+      <form method="POST" action="/register" id="register-form">
+
+        <!-- Step 1: Basics -->
+        <div id="step-1">
+          <div class="form-group">
+            <label class="form-label">Your name</label>
+            <input type="text" name="name" class="form-input" placeholder="Jane Doe" required autofocus>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email address</label>
+            <input type="email" name="email" class="form-input" placeholder="you@example.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" name="password" class="form-input" placeholder="Min 6 characters" required minlength="6">
+          </div>
+          <button type="button" onclick="nextStep(2)" class="btn btn-primary" style="width:100%;padding:12px">
+            Continue <i class="fa-solid fa-arrow-right fa-sm"></i>
+          </button>
+        </div>
+
+        <!-- Step 2: Cycle info -->
+        <div id="step-2" style="display:none">
+          <div style="margin-bottom:1.25rem;padding:14px;background:var(--blush);border-radius:var(--radius-md);font-size:0.85rem;color:var(--text-secondary)">
+            🌸 This helps us predict your cycle and give personalised insights.
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="form-group">
+              <label class="form-label">Age</label>
+              <input type="number" name="age" class="form-input" value="25" min="10" max="60">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Avg cycle (days)</label>
+              <input type="number" name="avg_cycle" class="form-input" value="28" min="14" max="60">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">BMI <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+            <input type="number" name="bmi" class="form-input" value="22.5" min="10" max="60" step="0.1">
+          </div>
+          <div style="display:flex;gap:8px;margin-top:0.25rem">
+            <button type="button" onclick="nextStep(1)" class="btn btn-ghost" style="flex:1;padding:12px">Back</button>
+            <button type="button" onclick="nextStep(3)" class="btn btn-primary" style="flex:2;padding:12px">Continue <i class="fa-solid fa-arrow-right fa-sm"></i></button>
+          </div>
+        </div>
+
+        <!-- Step 3: Irregularity flag -->
+        <div id="step-3" style="display:none">
+          <p style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:1.25rem;line-height:1.6">Do your cycles tend to be unpredictable or irregular?</p>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:1.5rem">
+            <label style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1.5px solid var(--border);border-radius:var(--radius-md);cursor:pointer;transition:all 0.15s" id="reg-lbl">
+              <input type="radio" name="irregularity" value="regular" checked style="accent-color:var(--coral)" onchange="setIrr(false,this)">
+              <div><div style="font-weight:500;font-size:0.875rem">Regular cycles</div><div style="font-size:0.78rem;color:var(--text-muted)">My period comes around the same time each month</div></div>
+            </label>
+            <label style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1.5px solid var(--border);border-radius:var(--radius-md);cursor:pointer;transition:all 0.15s" id="irr-lbl">
+              <input type="radio" name="irregularity" value="irregular" style="accent-color:var(--coral)" onchange="setIrr(true,this)">
+              <div><div style="font-weight:500;font-size:0.875rem">Irregular / PCOS</div><div style="font-size:0.78rem;color:var(--text-muted)">My cycle varies a lot, or I have PCOS / PCOD</div></div>
+            </label>
+          </div>
+          <input type="hidden" name="is_irregular" id="is_irregular_val" value="false">
+          <div style="display:flex;gap:8px">
+            <button type="button" onclick="nextStep(2)" class="btn btn-ghost" style="flex:1;padding:12px">Back</button>
+            <button type="submit" class="btn btn-primary" style="flex:2;padding:12px">
+              Create account 🌸
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <div class="divider"><span>Already have an account?</span></div>
+      <a href="/login" class="btn btn-ghost" style="width:100%;justify-content:center">Sign in instead</a>
+      {% endif %}
+
+      <p style="text-align:center;font-size:0.75rem;color:var(--text-muted);margin-top:1.5rem">
+        🔒 Your health data is private, encrypted, and never sold.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    function nextStep(n) {
+      [1,2,3].forEach(i => {
+        const el = document.getElementById('step-'+i);
+        if (el) el.style.display = i===n ? 'block' : 'none';
+        const dot = document.getElementById('dot-'+i);
+        if (dot) { dot.classList.toggle('active', i<=n); }
+      });
+    }
+    function setIrr(val, radio) {
+      document.getElementById('is_irregular_val').value = val;
+    }
+  </script>
+</body>
+</html>

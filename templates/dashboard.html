@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Bloom{% endblock %}
+{% set active_page = 'dashboard' %}
+
+{% block content %}
+<div class="dash-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div style="padding:0 6px 12px;border-bottom:1px solid var(--border);margin-bottom:8px">
+      <div style="font-size:0.78rem;color:var(--text-muted)">Signed in as</div>
+      <div style="font-weight:600;font-size:0.9rem;color:var(--text-primary)">{{ user.name }}</div>
+    </div>
+
+    <div class="sidebar-section-title">Main</div>
+    <a href="/dashboard" class="sidebar-link active"><span class="icon">🏠</span> Dashboard</a>
+    <a href="/log"       class="sidebar-link"><span class="icon">✏️</span> Log Today</a>
+    <a href="/logs"      class="sidebar-link"><span class="icon">📋</span> History</a>
+
+    <div class="sidebar-section-title">Features</div>
+    <a href="/kits"  class="sidebar-link"><span class="icon">📦</span> Care Kits</a>
+
+    <div style="margin-top:auto;padding-top:1.5rem;border-top:1px solid var(--border);margin-top:1.5rem">
+      <!-- Mini phase card -->
+      <div style="background:var(--blush);border-radius:var(--radius-md);padding:12px;text-align:center">
+        <div style="font-size:1.6rem">
+          {% if cycle_phase|lower == 'menstrual' %}🌹
+          {% elif cycle_phase|lower == 'follicular' %}🌱
+          {% elif cycle_phase|lower == 'ovulation' %}✨
+          {% else %}🌙{% endif %}
+        </div>
+        <div style="font-family:var(--font-display);font-size:0.95rem;color:var(--text-primary);margin-top:4px">{{ cycle_phase }} Phase</div>
+        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px">Day {{ cycle_day }}</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="dash-main">
+
+    <!-- Greeting -->
+    <div style="margin-bottom:1.75rem;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px" class="fade-up">
+      <div>
+        <h1 style="font-family:var(--font-display);font-size:1.9rem;color:var(--text-primary);line-height:1.2">
+          Hello, {{ user.name.split()[0] }} 🌸
+        </h1>
+        <p style="color:var(--text-muted);font-size:0.9rem;margin-top:4px">{{ wellness_tip }}</p>
+      </div>
+      <a href="/log" class="btn btn-primary">
+        <i class="fa-solid fa-plus fa-sm"></i> Log Today
+      </a>
+    </div>
+
+    <!-- Top stats -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:1.75rem">
+
+      <!-- Phase ring card -->
+      <div class="stat-card fade-up" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px">
+        <div class="phase-ring-wrap">
+          <svg width="160" height="160" viewBox="0 0 160 160">
+            <circle class="phase-ring-bg" cx="80" cy="80" r="65"/>
+            <circle class="phase-ring-prog" id="ring-prog" cx="80" cy="80" r="65"
+              stroke="url(#ringGrad)"
+              stroke-dasharray="{{ (progress / 100 * 408.41)|int }} 408.41"
+              stroke-dashoffset="0"/>
+            <defs>
+              <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#E8614A"/>
+                <stop offset="100%" stop-color="#A06070"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="phase-ring-center">
+            <div class="phase-ring-days">{{ cycle_day }}</div>
+            <div class="phase-ring-label">Day of cycle</div>
+          </div>
+        </div>
+        <span class="phase-badge phase-{{ cycle_phase|lower }}">{{ cycle_phase }}</span>
+      </div>
+
+      <!-- Next period -->
+      <div class="stat-card fade-up">
+        <div class="stat-label">Next Period</div>
+        <div class="stat-value" style="font-size:2.5rem">{{ days_until }}</div>
+        <div class="stat-sub">days away</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);margin-top:6px">{{ next_date }}</div>
+        <div class="progress-wrap" style="margin-top:10px">
+          <div class="progress-fill" style="width:{{ progress }}%"></div>
+        </div>
+        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:5px">80% window: {{ confidence_lo }}–{{ confidence_hi }} days</div>
+      </div>
+
+      <!-- Fertile window -->
+      <div class="stat-card fade-up">
+        <div class="stat-label">Fertile Window</div>
+        <div style="font-size:1.4rem;margin:8px 0">🌺</div>
+        <div style="font-size:0.85rem;font-weight:600;color:var(--text-primary)">{{ fertile_start }}</div>
+        <div style="font-size:0.78rem;color:var(--text-muted)">through {{ fertile_end }}</div>
+        <div style="margin-top:10px;font-size:0.78rem;color:var(--text-secondary);line-height:1.5">Track intercourse during this window for best conception chances.</div>
+      </div>
+
+      <!-- PCOS / Health -->
+      <div class="stat-card fade-up">
+        <div class="stat-label">Health Status</div>
+        {% if pcos_risk == 'high' %}
+        <div class="pcos-alert pcos-high" style="margin-top:8px;padding:10px 12px">
+          <div class="pcos-icon">🔴</div>
+          <div>
+            <div style="font-weight:600;font-size:0.8rem;color:#991b1b">High PCOS Risk</div>
+            {% for r in pcos_reasons[:2] %}<div style="font-size:0.72rem;color:#9f1239;margin-top:2px">{{ r }}</div>{% endfor %}
+          </div>
+        </div>
+        <button onclick="quickSend('Am I at risk for PCOS? What should I do?')" class="btn btn-ghost btn-sm" style="margin-top:10px;width:100%">Ask Bloom →</button>
+        {% elif pcos_risk == 'moderate' %}
+        <div class="pcos-alert pcos-moderate" style="margin-top:8px;padding:10px 12px">
+          <div class="pcos-icon">🟡</div>
+          <div>
+            <div style="font-weight:600;font-size:0.8rem;color:#92400e">Moderate Risk</div>
+            <div style="font-size:0.72rem;color:#78350f;margin-top:2px">{{ pcos_reasons[0] if pcos_reasons else '' }}</div>
+          </div>
+        </div>
+        {% else %}
+        <div class="pcos-alert pcos-low" style="margin-top:8px;padding:10px 12px">
+          <div class="pcos-icon">✅</div>
+          <div><div style="font-weight:600;font-size:0.8rem;color:#166534">Looking healthy!</div><div style="font-size:0.72rem;color:#14532d;margin-top:2px">Low PCOS risk detected</div></div>
+        </div>
+        {% endif %}
+        {% if is_irregular %}
+        <span class="badge badge-amber" style="margin-top:8px"><i class="fa-solid fa-wave-square fa-xs"></i> Irregular cycle</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Charts & Calendar grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.75rem">
+
+      <!-- Symptom chart -->
+      <div class="card fade-up">
+        <div class="card-header">
+          <span class="card-title">Symptom Trends</span>
+          <div style="display:flex;gap:6px">
+            <button class="chart-btn active-btn" id="btn-line" onclick="switchChart('line')">Line</button>
+            <button class="chart-btn" id="btn-bar" onclick="switchChart('bar')">Bar</button>
+          </div>
+        </div>
+        <div class="card-body" style="height:220px">
+          <canvas id="symptomChart"></canvas>
+        </div>
+        <div style="padding:0 1.25rem 1rem;display:flex;flex-wrap:wrap;gap:10px">
+          <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--text-muted)"><span style="width:8px;height:8px;border-radius:50%;background:#E8614A;flex-shrink:0"></span>Cramps</span>
+          <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--text-muted)"><span style="width:8px;height:8px;border-radius:50%;background:#A06070;flex-shrink:0"></span>Headache</span>
+          <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--text-muted)"><span style="width:8px;height:8px;border-radius:50%;background:#F0A0A0;flex-shrink:0"></span>Fatigue</span>
+          <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--text-muted)"><span style="width:8px;height:8px;border-radius:50%;background:#F5C060;flex-shrink:0"></span>Bloating</span>
+        </div>
+      </div>
+
+      <!-- Calendar -->
+      <div class="card fade-up">
+        <div class="card-header">
+          <span class="card-title">Cycle Calendar</span>
+          <a href="/log" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus fa-xs"></i> Add</a>
+        </div>
+        <div class="card-body" style="padding-top:0.5rem">
+          <div id="calendar" style="height:240px"></div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px">
+            <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--text-muted)"><span style="width:8px;height:8px;border-radius:50%;background:#E8614A"></span>Period</span>
+            <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--text-muted)"><span style="width:8px;height:8px;border-radius:50%;background:#A06070"></span>Fertile</span>
+            <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:var(--text-muted)"><span style="width:8px;height:8px;border-radius:50%;background:#87CEEB"></span>Symptoms</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mood chart (full width) -->
+    <div class="card fade-up" style="margin-bottom:1.75rem">
+      <div class="card-header">
+        <span class="card-title">Mood Over Time</span>
+        <span style="font-size:0.78rem;color:var(--text-muted)">Last 6 months</span>
+      </div>
+      <div class="card-body" style="height:150px">
+        <canvas id="moodChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Recent logs -->
+    <div class="card fade-up">
+      <div class="card-header">
+        <span class="card-title">Recent Logs</span>
+        <a href="/logs" style="font-size:0.82rem;color:var(--coral);text-decoration:none;font-weight:500">View all →</a>
+      </div>
+
+      {% if recent_logs %}
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Flow</th>
+              <th>Mood</th>
+              <th>Symptoms</th>
+              <th>Wellbeing</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% set micons = {'happy':'😊','sad':'😢','angry':'😠','tired':'😴','neutral':'😐'} %}
+            {% for log in recent_logs %}
+            <tr>
+              <td>
+                <div style="font-weight:500;color:var(--text-primary)">{{ log.log_date.strftime('%b %d') }}</div>
+                <div style="font-size:0.72rem;color:var(--text-muted)">Day {{ log.cycle_day or '—' }}</div>
+              </td>
+              <td>
+                {% if log.flow_intensity and log.flow_intensity != 'none' %}
+                <span class="badge badge-rose">🩸 {{ log.flow_intensity|capitalize }}</span>
+                {% else %}<span style="color:var(--text-muted);font-size:0.8rem">—</span>{% endif %}
+              </td>
+              <td>{{ micons.get(log.mood,'😐') }} <span style="color:var(--text-secondary);font-size:0.85rem">{{ log.mood|capitalize if log.mood else '—' }}</span></td>
+              <td>
+                <div style="display:flex;flex-wrap:wrap;gap:4px">
+                  {% for s in log.symptoms_list[:3] %}
+                  <span class="badge badge-mauve" style="font-weight:400">{{ s }}</span>
+                  {% endfor %}
+                </div>
+              </td>
+              <td>
+                <div style="font-size:0.78rem;color:var(--text-muted)">
+                  {% if log.stress %}<div>Stress: <span style="color:var(--text-secondary);font-weight:500">{{ log.stress|capitalize }}</span></div>{% endif %}
+                  {% if log.sleep %}<div>Sleep: <span style="color:var(--text-secondary);font-weight:500">{{ log.sleep|capitalize }}</span></div>{% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon">🌱</div>
+        <div class="empty-state-title">No logs yet</div>
+        <div class="empty-state-text">Start tracking your cycle to see patterns and get personalised insights.</div>
+        <a href="/log" class="btn btn-primary" style="margin-top:0.5rem">Log your first day</a>
+      </div>
+      {% endif %}
+    </div>
+
+  </main>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const chartData      = {{ chart_data | safe }};
+const calendarEvents = {{ calendar_events | safe }};
+
+// Symptom chart
+const symCtx = document.getElementById('symptomChart').getContext('2d');
+let symChart = new Chart(symCtx, {
+  type: 'line',
+  data: {
+    labels: chartData.labels,
+    datasets: [
+      { label:'Cramps',   data: chartData.cramps,   borderColor:'#E8614A', backgroundColor:'rgba(232,97,74,.08)',  tension:.4, fill:true, pointRadius:3, borderWidth:2 },
+      { label:'Headache', data: chartData.headache, borderColor:'#A06070', backgroundColor:'rgba(160,96,112,.08)', tension:.4, fill:true, pointRadius:3, borderWidth:2 },
+      { label:'Fatigue',  data: chartData.fatigue,  borderColor:'#F0A0A0', backgroundColor:'rgba(240,160,160,.08)',tension:.4, fill:true, pointRadius:3, borderWidth:2 },
+      { label:'Bloating', data: chartData.bloating, borderColor:'#F5C060', backgroundColor:'rgba(245,192,96,.08)', tension:.4, fill:true, pointRadius:3, borderWidth:2 },
+    ]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ display:false } },
+    scales:{
+      y:{ beginAtZero:true, grid:{ color:'rgba(0,0,0,.04)', drawBorder:false }, ticks:{ stepSize:1, font:{ size:11 } } },
+      x:{ grid:{ display:false }, ticks:{ font:{ size:11 } } }
+    }
+  }
+});
+
+function switchChart(type) {
+  symChart.config.type = type; symChart.update();
+  document.getElementById('btn-line').className = type==='line' ? 'chart-btn active-btn' : 'chart-btn';
+  document.getElementById('btn-bar').className  = type==='bar'  ? 'chart-btn active-btn' : 'chart-btn';
+}
+
+// Mood chart
+new Chart(document.getElementById('moodChart').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: chartData.labels,
+    datasets:[{
+      label:'Mood',
+      data: chartData.mood,
+      backgroundColor: chartData.mood.map(v => v>=4?'rgba(232,97,74,.7)':v>=3?'rgba(160,96,112,.7)':'rgba(135,206,235,.7)'),
+      borderRadius: 8, borderSkipped: false
+    }]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ display:false } },
+    scales:{
+      y:{ beginAtZero:true, max:5, grid:{ color:'rgba(0,0,0,.04)', drawBorder:false },
+          ticks:{ stepSize:1, callback: v=>['','😢','😐','😊','😄','🥳'][v]||'', font:{ size:13 } } },
+      x:{ grid:{ display:false }, ticks:{ font:{ size:11 } } }
+    }
+  }
+});
+
+// Calendar
+document.addEventListener('DOMContentLoaded', () => {
+  const cal = new FullCalendar.Calendar(document.getElementById('calendar'), {
+    initialView: 'dayGridMonth',
+    headerToolbar:{ left:'prev,next', center:'title', right:'' },
+    height: 240,
+    events: calendarEvents,
+    eventClick(info) {
+      const p = info.event.extendedProps;
+      alert(`${info.event.title}\n${info.event.startStr}${p.all_symptoms?'\n'+p.all_symptoms.join(', '):''}`);
+    }
+  });
+  cal.render();
+});
+</script>
+{% endblock %}

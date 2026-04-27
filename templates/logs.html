@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}History — Bloom{% endblock %}
+{% set active_page = 'logs' %}
+
+{% block content %}
+<div class="dash-layout">
+  <aside class="sidebar">
+    <div style="padding:0 6px 12px;border-bottom:1px solid var(--border);margin-bottom:8px">
+      <div style="font-size:0.78rem;color:var(--text-muted)">Signed in as</div>
+      <div style="font-weight:600;font-size:0.9rem;color:var(--text-primary)">{{ user.name }}</div>
+    </div>
+    <div class="sidebar-section-title">Main</div>
+    <a href="/dashboard" class="sidebar-link"><span class="icon">🏠</span> Dashboard</a>
+    <a href="/log"       class="sidebar-link"><span class="icon">✏️</span> Log Today</a>
+    <a href="/logs"      class="sidebar-link active"><span class="icon">📋</span> History</a>
+    <div class="sidebar-section-title">Features</div>
+    <a href="/kits"  class="sidebar-link"><span class="icon">📦</span> Care Kits</a>
+  </aside>
+
+  <main class="dash-main">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.75rem;flex-wrap:wrap;gap:12px" class="fade-up">
+      <div>
+        <h1 style="font-family:var(--font-display);font-size:1.8rem;color:var(--text-primary)">Cycle History</h1>
+        <p style="color:var(--text-muted);font-size:0.875rem;margin-top:4px">
+          {{ logs|length }} log{{ 's' if logs|length != 1 else '' }} recorded
+        </p>
+      </div>
+      <a href="/log" class="btn btn-primary">
+        <i class="fa-solid fa-plus fa-sm"></i> Add Log
+      </a>
+    </div>
+
+    {% if logs %}
+    <div style="display:flex;flex-direction:column;gap:12px">
+      {% for log in logs %}
+      <div class="card card-lift fade-up" style="overflow:visible">
+        <div style="display:flex;flex-direction:column;gap:0">
+
+          <!-- Top row -->
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:1.25rem 1.5rem;border-bottom:{% if log.symptoms_list or log.notes %}1px solid var(--border){% else %}none{% endif %}">
+
+            <!-- Date + cycle day -->
+            <div style="display:flex;align-items:center;gap:14px">
+              <div style="width:48px;height:48px;border-radius:var(--radius-md);background:linear-gradient(135deg,var(--coral),var(--mauve));display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;flex-shrink:0;box-shadow:0 4px 12px rgba(232,97,74,.25)">
+                <span style="font-size:0.65rem;font-weight:600;opacity:0.85">{{ log.log_date.strftime('%b').upper() }}</span>
+                <span style="font-size:1.2rem;font-weight:700;line-height:1">{{ log.log_date.strftime('%d') }}</span>
+              </div>
+              <div>
+                <div style="font-weight:600;font-size:0.95rem;color:var(--text-primary)">{{ log.log_date.strftime('%A, %B %d, %Y') }}</div>
+                <div style="font-size:0.75rem;color:var(--text-muted)">Cycle day {{ log.cycle_day or '—' }}</div>
+              </div>
+            </div>
+
+            <!-- Badges row -->
+            <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+              {% if log.flow_intensity and log.flow_intensity != 'none' %}
+                {% set flow_colors = {'light': 'badge-rose', 'medium': 'badge-rose', 'heavy': 'badge-rose'} %}
+                <span class="badge {{ flow_colors.get(log.flow_intensity, 'badge-rose') }}">🩸 {{ log.flow_intensity|capitalize }}</span>
+              {% endif %}
+
+              {% set micons = {'happy':'😊','sad':'😢','angry':'😠','tired':'😴','neutral':'😐'} %}
+              {% if log.mood %}
+              <span class="badge badge-mauve">{{ micons.get(log.mood,'😐') }} {{ log.mood|capitalize }}</span>
+              {% endif %}
+
+              {% if log.stress %}
+                {% set stress_badge = {'low':'badge-green','medium':'badge-amber','high':'badge-rose'} %}
+                <span class="badge {{ stress_badge.get(log.stress,'badge-mauve') }}">
+                  {% if log.stress == 'low' %}🟢{% elif log.stress == 'medium' %}🟡{% else %}🔴{% endif %}
+                  Stress: {{ log.stress|capitalize }}
+                </span>
+              {% endif %}
+
+              {% if log.sleep %}
+              <span class="badge badge-purple">🌙 Sleep: {{ log.sleep|capitalize }}</span>
+              {% endif %}
+
+              {% if log.exercise %}
+                {% set ex_badge = {'good':'badge-green','okay':'badge-mauve','bad':'badge-amber'} %}
+                <span class="badge {{ ex_badge.get(log.exercise,'badge-mauve') }}">
+                  {% if log.exercise == 'good' %}💪{% elif log.exercise == 'okay' %}🚶{% else %}🛋️{% endif %}
+                  {{ {'good':'Active','okay':'Light','bad':'Rest'}[log.exercise] }}
+                </span>
+              {% endif %}
+
+              <!-- Delete -->
+              <form method="POST" action="/logs/delete/{{ log.id }}" onsubmit="return confirm('Delete this log?')" style="margin-left:4px">
+                <button type="submit" class="btn btn-danger btn-sm" style="padding:4px 10px;font-size:0.72rem">
+                  <i class="fa-solid fa-trash fa-xs"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Symptoms + notes row -->
+          {% if log.symptoms_list or log.notes %}
+          <div style="padding:0.875rem 1.5rem;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start">
+            {% if log.symptoms_list %}
+            <div style="display:flex;flex-wrap:wrap;gap:5px;flex:1;min-width:200px">
+              {% for s in log.symptoms_list %}
+              <span class="sym-chip active" style="cursor:default;font-size:0.75rem;padding:4px 10px">{{ s }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+            {% if log.notes %}
+            <div style="flex:1;min-width:200px;font-size:0.82rem;color:var(--text-secondary);border-left:2px solid var(--mauve-light);padding-left:10px;font-style:italic;line-height:1.6">
+              {{ log.notes }}
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="card">
+      <div class="empty-state">
+        <div class="empty-state-icon">🌱</div>
+        <div class="empty-state-title">Your journey starts here</div>
+        <div class="empty-state-text">Every log entry helps Bloom understand your cycle better. Start with how you're feeling today.</div>
+        <a href="/log" class="btn btn-primary" style="margin-top:0.5rem">
+          <i class="fa-solid fa-plus fa-sm"></i> Add your first log
+        </a>
+      </div>
+    </div>
+    {% endif %}
+  </main>
+</div>
+{% endblock %}
