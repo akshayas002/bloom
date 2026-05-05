@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Page Not Found | Bloom{% endblock %}
+{% block title %}Not Found — Bloom{% endblock %}
 {% block content %}
-<div class="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-  <div class="text-7xl mb-6">🌸</div>
-  <h2 class="text-3xl font-bold text-[#C08081] mb-2" style="font-family:'Quicksand',sans-serif">Page Not Found</h2>
-  <p class="text-gray-500 mb-6">Looks like this page took a cycle break.</p>
-  <a href="/dashboard" class="px-6 py-3 bg-gradient-to-r from-[#FF6F61] to-[#C08081] text-white rounded-xl font-medium hover:opacity-90 transition shadow-md">Back to Dashboard</a>
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 64px);text-align:center;padding:2rem">
+  <div style="font-size:4rem;margin-bottom:1.25rem">🌸</div>
+  <h1 style="font-family:var(--font-display);font-size:2.2rem;color:var(--text-primary);margin-bottom:0.5rem">Page Not Found</h1>
+  <p style="color:var(--text-muted);font-size:0.95rem;margin-bottom:2rem">Looks like this page took a cycle break.</p>
+  <a href="/dashboard" class="btn btn-primary btn-lg">Go to Dashboard</a>
 </div>
 {% endblock %}
