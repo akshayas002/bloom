@@ -1,4 +1,4 @@
-"""Dashboard, log, predict, chart, and calendar routes."""
+"""Dashboard, log, predict, chart, calendar, and kits routes."""
 
 import json
 from datetime import date, datetime
@@ -54,7 +54,6 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     cal_events   = await build_calendar_events(db, user, prediction)
     chart_data   = await build_chart_data(db, user)
 
-    # Recent logs
     result = await db.execute(
         select(CycleLog)
         .where(CycleLog.user_id == user.id)
@@ -78,7 +77,6 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         }
         recent_logs.append(d)
 
-    # Phase tips
     phase = prediction.get("cycle_phase", "follicular")
     phase_tips = {
         "menstrual":  "You're in your menstrual phase. Rest, stay warm, and eat iron-rich foods like spinach. A heating pad is your best friend right now. 🌹",
@@ -92,27 +90,27 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     progress   = min(100, int((prediction.get("cycle_day", 1) / avg_cycle) * 100))
 
     return templates.TemplateResponse("dashboard.html", {
-        "request":        request,
-        "user":           user,
-        "flashes":        get_flashes(request),
-        "prediction":     prediction,
-        "days_until":     days_until,
-        "next_date":      prediction.get("next_period_date", ""),
-        "cycle_day":      prediction.get("cycle_day", 1),
-        "cycle_phase":    phase.capitalize(),
-        "progress":       progress,
-        "pcos_risk":      prediction.get("pcos_risk_level", "low"),
-        "pcos_score":     prediction.get("pcos_risk_score", 0),
-        "pcos_reasons":   prediction.get("pcos_reasons", []),
-        "is_irregular":   prediction.get("is_irregular", False),
-        "confidence_lo":  prediction.get("confidence_lo", days_until),
-        "confidence_hi":  prediction.get("confidence_hi", days_until),
-        "wellness_tip":   phase_tips.get(phase, phase_tips["follicular"]),
-        "fertile_start":  prediction.get("fertile_start", ""),
-        "fertile_end":    prediction.get("fertile_end", ""),
-        "recent_logs":    recent_logs,
+        "request":         request,
+        "user":            user,
+        "flashes":         get_flashes(request),
+        "prediction":      prediction,
+        "days_until":      days_until,
+        "next_date":       prediction.get("next_period_date", ""),
+        "cycle_day":       prediction.get("cycle_day", 1),
+        "cycle_phase":     phase.capitalize(),
+        "progress":        progress,
+        "pcos_risk":       prediction.get("pcos_risk_level", "low"),
+        "pcos_score":      prediction.get("pcos_risk_score", 0),
+        "pcos_reasons":    prediction.get("pcos_reasons", []),
+        "is_irregular":    prediction.get("is_irregular", False),
+        "confidence_lo":   prediction.get("confidence_lo", days_until),
+        "confidence_hi":   prediction.get("confidence_hi", days_until),
+        "wellness_tip":    phase_tips.get(phase, phase_tips["follicular"]),
+        "fertile_start":   prediction.get("fertile_start", ""),
+        "fertile_end":     prediction.get("fertile_end", ""),
+        "recent_logs":     recent_logs,
         "calendar_events": json.dumps(cal_events),
-        "chart_data":     json.dumps(chart_data),
+        "chart_data":      json.dumps(chart_data),
     })
 
 
@@ -133,27 +131,24 @@ async def log_page(request: Request, db: AsyncSession = Depends(get_db)):
 # ── Log Entry — POST ──────────────────────────────────────────────────────────
 @router.post("/log")
 async def log_submit(
-    request:       Request,
-    db:            AsyncSession = Depends(get_db),
-    log_date:      str   = Form(...),
+    request:        Request,
+    db:             AsyncSession = Depends(get_db),
+    log_date:       str  = Form(...),
     flow_intensity: str  = Form("none"),
-    mood:          str   = Form("neutral"),
-    stress:        str   = Form("medium"),
-    sleep:         str   = Form("normal"),
-    exercise:      str   = Form("okay"),
-    notes:         str   = Form(""),
+    mood:           str  = Form("neutral"),
+    stress:         str  = Form("medium"),
+    sleep:          str  = Form("normal"),
+    exercise:       str  = Form("okay"),
+    notes:          str  = Form(""),
 ):
     user = await require_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=303)
 
-    # Collect symptoms from multi-select checkboxes
-    form = await request.form()
+    form     = await request.form()
     symptoms = list(form.getlist("symptoms"))
+    ld       = datetime.strptime(log_date, "%Y-%m-%d").date()
 
-    ld = datetime.strptime(log_date, "%Y-%m-%d").date()
-
-    # Compute cycle_day and days_since_last
     result = await db.execute(
         select(CycleLog)
         .where(and_(CycleLog.user_id == user.id,
@@ -170,7 +165,6 @@ async def log_submit(
         days_since = None
         cycle_day  = 1
 
-    # Upsert
     existing = await db.execute(
         select(CycleLog).where(and_(CycleLog.user_id == user.id, CycleLog.log_date == ld))
     )
@@ -252,6 +246,22 @@ async def delete_log(log_id: int, request: Request, db: AsyncSession = Depends(g
     return RedirectResponse("/logs", status_code=303)
 
 
+# ── Kits page ─────────────────────────────────────────────────────────────────
+@router.get("/kits", response_class=HTMLResponse)
+async def kits_page(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await require_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    prediction  = await get_prediction(db, user)
+    next_period = prediction.get("next_period_date", "")
+    return templates.TemplateResponse("kits.html", {
+        "request":     request,
+        "user":        user,
+        "flashes":     get_flashes(request),
+        "next_period": next_period,
+    })
+
+
 # ── Predict API ───────────────────────────────────────────────────────────────
 @router.post("/api/predict")
 async def predict_api(request: Request, db: AsyncSession = Depends(get_db)):
@@ -272,8 +282,8 @@ async def predict_api(request: Request, db: AsyncSession = Depends(get_db)):
         stress          = data.get("stress",   "medium"),
         sleep           = data.get("sleep",    "normal"),
         exercise        = data.get("exercise", "okay"),
-        bmi             = float(data.get("bmi",         user.bmi or 22.5)),
-        avg_previous    = float(data.get("avg_previous", user.avg_cycle or 28)),
+        bmi             = float(data.get("bmi",          user.bmi or 22.5)),
+        avg_previous    = float(data.get("avg_previous",  user.avg_cycle or 28)),
         cycle_variation = float(data.get("cycle_variation", 2.0)),
         symptoms        = data.get("symptoms", []),
     )

@@ -57,6 +57,7 @@ bloom/
 │   ├── base.html                  ← Navbar + chatbot widget
 │   ├── auth.html                  ← Login & Register
 │   ├── dashboard.html             ← Full dashboard
+|   ├── kits.html                  ← Personalized kits 
 │   ├── log.html                   ← Daily log entry
 │   ├── logs.html                  ← History view
 │   └── 404.html
