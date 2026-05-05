@@ -2,7 +2,8 @@
 fastapi>=0.111.0
 uvicorn[standard]>=0.29.0
 starlette>=0.37.0
-python-multipart>=0.0.9       # required for Form() parsing
+python-multipart>=0.0.9 
+gunicorn      # required for Form() parsing
 
 # ── Sessions ──────────────────────────────────────────────────────────────────
 itsdangerous>=2.1.2

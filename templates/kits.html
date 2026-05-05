@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% block title %}Care Kits — Bloom{% endblock %}
+{% set active_page = 'kits' %}
+
+{% block content %}
+<div class="dash-layout">
+  <aside class="sidebar">
+    <div style="padding:0 6px 12px;border-bottom:1px solid var(--border);margin-bottom:8px">
+      <div style="font-size:0.78rem;color:var(--text-muted)">Signed in as</div>
+      <div style="font-weight:600;font-size:0.9rem;color:var(--text-primary)">{{ user.name }}</div>
+    </div>
+    <div class="sidebar-section-title">Main</div>
+    <a href="/dashboard" class="sidebar-link"><span class="icon">🏠</span> Dashboard</a>
+    <a href="/log"       class="sidebar-link"><span class="icon">✏️</span> Log Today</a>
+    <a href="/logs"      class="sidebar-link"><span class="icon">📋</span> History</a>
+    <div class="sidebar-section-title">Features</div>
+    <a href="/kits"  class="sidebar-link active"><span class="icon">📦</span> Care Kits</a>
+  </aside>
+
+  <main class="dash-main">
+
+    <!-- Hero -->
+    <div style="border-radius:var(--radius-xl);overflow:hidden;margin-bottom:2rem;position:relative;background:linear-gradient(135deg,#FBE8E3 0%,#F5EBEd 100%);padding:2.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px" class="fade-up">
+      <div style="position:absolute;top:-30px;right:60px;width:180px;height:180px;border-radius:50%;background:rgba(232,97,74,.08);filter:blur(30px)"></div>
+      <div style="position:relative;z-index:1">
+        <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:white;border-radius:var(--radius-full);font-size:0.72rem;font-weight:600;color:var(--coral);margin-bottom:0.75rem;box-shadow:var(--shadow-sm)">
+          ✦ New Feature
+        </span>
+        <h1 style="font-family:var(--font-display);font-size:2rem;color:var(--text-primary);margin-bottom:0.5rem;line-height:1.2">
+          Bloom Care Kits
+        </h1>
+        <p style="color:var(--text-secondary);font-size:0.95rem;max-width:480px;line-height:1.6">
+          Monthly menstrual care boxes — curated around <em>your</em> cycle, delivered to your door before your period arrives.
+        </p>
+      </div>
+      <div style="position:relative;z-index:1;text-align:center">
+        <div style="font-size:4rem;filter:drop-shadow(0 4px 8px rgba(0,0,0,.1))">📦</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);margin-top:6px">Delivered monthly</div>
+      </div>
+    </div>
+
+    <!-- Customiser -->
+    <div class="card fade-up" style="margin-bottom:1.5rem">
+      <div class="card-header">
+        <span class="card-title">✦ Personalise Your Kit</span>
+        <span style="font-size:0.78rem;color:var(--text-muted)">Based on your logged data</span>
+      </div>
+      <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5rem">
+
+        <!-- Flow preference -->
+        <div>
+          <div class="form-label" style="margin-bottom:0.75rem">Flow Type</div>
+          <div style="display:flex;flex-direction:column;gap:6px" id="flow-pref">
+            {% for val,icon,label in [('light','💧','Light'),('medium','🩸','Medium'),('heavy','🩸🩸','Heavy'),('mixed','🔀','Mixed / Varies')] %}
+            <label style="display:flex;align-items:center;gap:8px;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-md);cursor:pointer;transition:all 0.15s;background:white" class="kit-option">
+              <input type="radio" name="kit_flow" value="{{ val }}" style="accent-color:var(--coral)" {% if val=='medium' %}checked{% endif %}>
+              <span style="font-size:0.875rem;color:var(--text-secondary)">{{ icon }} {{ label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Product prefs -->
+        <div>
+          <div class="form-label" style="margin-bottom:0.75rem">Products</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            {% for val,icon,label in [('pads','🩹','Pads'),('tampons','🔵','Tampons'),('cups','♻️','Menstrual Cup'),('discs','💿','Discs'),('liners','🌿','Panty Liners')] %}
+            <label style="display:flex;align-items:center;gap:8px;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-md);cursor:pointer;transition:all 0.15s;background:white" class="kit-option">
+              <input type="checkbox" name="kit_products" value="{{ val }}" style="accent-color:var(--coral)" {% if val in ['pads','liners'] %}checked{% endif %}>
+              <span style="font-size:0.875rem;color:var(--text-secondary)">{{ icon }} {{ label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Add-ons -->
+        <div>
+          <div class="form-label" style="margin-bottom:0.75rem">Self-Care Add-ons</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            {% for val,icon,label in [('heat','🌡️','Heating Patch'),('pain','💊','Pain Relief Strips'),('tea','🫖','Herbal Period Tea'),('chocolate','🍫','Dark Chocolate'),('facemask','🧖','Relaxing Face Mask'),('vitamins','💊','Iron + Magnesium Supplement')] %}
+            <label style="display:flex;align-items:center;gap:8px;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-md);cursor:pointer;transition:all 0.15s;background:white" class="kit-option">
+              <input type="checkbox" name="kit_addons" value="{{ val }}" style="accent-color:var(--coral)" {% if val in ['heat','tea'] %}checked{% endif %}>
+              <span style="font-size:0.875rem;color:var(--text-secondary)">{{ icon }} {{ label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Subscription plans -->
+    <div class="fade-up" style="margin-bottom:1.5rem">
+      <h2 style="font-family:var(--font-display);font-size:1.5rem;color:var(--text-primary);margin-bottom:0.4rem">Choose your plan</h2>
+      <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:1.25rem">All plans include free delivery, cycle-synced timing, and the ability to pause or skip anytime.</p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+
+        <!-- Essential -->
+        <div class="kit-card card-lift" style="background:white">
+          <div style="font-size:1.5rem;margin-bottom:1rem">🌿</div>
+          <h3 style="font-family:var(--font-display);font-size:1.2rem;color:var(--text-primary);margin-bottom:0.25rem">Essential</h3>
+          <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem">Core protection, nothing extra</p>
+          <div class="kit-price"><sup>₹</sup>299<span>/month</span></div>
+          <div style="height:1px;background:var(--border);margin:1rem 0"></div>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:1.25rem">
+            {% for f in ['20 pads (day + night)','10 panty liners','Disposal bags','Cycle timing — delivered 2 days early'] %}
+            <div class="kit-feature"><div class="check">✓</div>{{ f }}</div>
+            {% endfor %}
+          </div>
+          <button onclick="selectPlan('essential',299,this)" class="btn btn-ghost" style="width:100%;justify-content:center" data-plan="essential">
+            Select plan
+          </button>
+        </div>
+
+        <!-- Bloom (popular) -->
+        <div class="kit-card card-lift popular" style="background:white">
+          <div class="popular-tag">Most popular</div>
+          <div style="font-size:1.5rem;margin-bottom:1rem">🌸</div>
+          <h3 style="font-family:var(--font-display);font-size:1.2rem;color:var(--text-primary);margin-bottom:0.25rem">Bloom</h3>
+          <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem">Full care, customised for you</p>
+          <div class="kit-price"><sup>₹</sup>549<span>/month</span></div>
+          <div style="height:1px;background:var(--border);margin:1rem 0"></div>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:1.25rem">
+            {% for f in ['Everything in Essential','Tampons or cups (your choice)','Heating patch × 2','Herbal period tea sachet','Supplement strip','AI-personalised based on your logs','Pause or skip anytime'] %}
+            <div class="kit-feature"><div class="check" style="background:var(--blush-deep)">✓</div>{{ f }}</div>
+            {% endfor %}
+          </div>
+          <button onclick="selectPlan('bloom',549,this)" class="btn btn-primary" style="width:100%;justify-content:center" data-plan="bloom">
+            Select plan
+          </button>
+        </div>
+
+        <!-- Premium -->
+        <div class="kit-card card-lift" style="background:white">
+          <div style="font-size:1.5rem;margin-bottom:1rem">👑</div>
+          <h3 style="font-family:var(--font-display);font-size:1.2rem;color:var(--text-primary);margin-bottom:0.25rem">Premium</h3>
+          <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem">Everything + premium self-care</p>
+          <div class="kit-price"><sup>₹</sup>899<span>/month</span></div>
+          <div style="height:1px;background:var(--border);margin:1rem 0"></div>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:1.25rem">
+            {% for f in ['Everything in Bloom','Premium organic products','Relaxing face mask','Dark chocolate bar','Custom scented candle','Handwritten wellness card','Priority delivery','Free swap within 7 days'] %}
+            <div class="kit-feature"><div class="check">✓</div>{{ f }}</div>
+            {% endfor %}
+          </div>
+          <button onclick="selectPlan('premium',899,this)" class="btn btn-ghost" style="width:100%;justify-content:center" data-plan="premium">
+            Select plan
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delivery & management -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.5rem" class="fade-up">
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">🚚 Smart Delivery</span></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--blush);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📅</div>
+            <div>
+              <div style="font-weight:600;font-size:0.875rem;color:var(--text-primary)">Cycle-synced timing</div>
+              <div style="font-size:0.8rem;color:var(--text-muted)">We use your Bloom prediction to dispatch your kit 2–3 days before your period starts.</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--blush);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📍</div>
+            <div>
+              <div style="font-weight:600;font-size:0.875rem;color:var(--text-primary)">Discreet packaging</div>
+              <div style="font-size:0.8rem;color:var(--text-muted)">Plain box, no labels. Your privacy is always respected.</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--blush);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🆓</div>
+            <div>
+              <div style="font-weight:600;font-size:0.875rem;color:var(--text-primary)">Free delivery, always</div>
+              <div style="font-size:0.8rem;color:var(--text-muted)">On all plans, across India. No hidden charges.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">⚙️ Subscription Controls</span></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+          {% for icon,title,desc in [
+            ('⏸️','Pause anytime','Going on holiday or have extras? Pause next month with one tap.'),
+            ('⏭️','Skip a delivery','Not needed this month? Skip it — no charge, no questions.'),
+            ('✏️','Edit your kit','Change products, add-ons, or flow type before your next dispatch.'),
+            ('❌','Cancel anytime','No lock-ins. Cancel with a single click, effective next cycle.')
+          ] %}
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--blush);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">{{ icon }}</div>
+            <div>
+              <div style="font-weight:600;font-size:0.875rem;color:var(--text-primary)">{{ title }}</div>
+              <div style="font-size:0.8rem;color:var(--text-muted)">{{ desc }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="card fade-up" style="background:linear-gradient(135deg,var(--coral-pale),var(--mauve-pale));border:none;text-align:center;padding:2.5rem">
+      <div style="font-size:2.5rem;margin-bottom:1rem">🌸</div>
+      <h2 style="font-family:var(--font-display);font-size:1.6rem;color:var(--text-primary);margin-bottom:0.5rem">Ready to bloom?</h2>
+      <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:1.5rem;max-width:400px;margin-left:auto;margin-right:auto">
+        Your first kit ships 2 days before your predicted next period on <strong>{{ next_period or 'your next cycle' }}</strong>.
+      </p>
+      <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap">
+        <button id="subscribe-cta" class="btn btn-primary btn-lg" onclick="subscribe()">
+          <i class="fa-solid fa-box-heart fa-sm"></i> Subscribe now — ₹<span id="cta-price">549</span>/month
+        </button>
+        <a href="/dashboard" class="btn btn-ghost btn-lg">Maybe later</a>
+      </div>
+      <p style="font-size:0.75rem;color:var(--text-muted);margin-top:1rem">Free to cancel. No contracts. First box curated by Bloom AI.</p>
+    </div>
+
+    <!-- Success modal -->
+    <div id="subscribe-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:300;display:none;align-items:center;justify-content:center">
+      <div style="background:white;border-radius:var(--radius-xl);padding:2.5rem;max-width:440px;width:calc(100%-2rem);text-align:center;box-shadow:var(--shadow-lg)">
+        <div style="font-size:3rem;margin-bottom:1rem">🎉</div>
+        <h2 style="font-family:var(--font-display);font-size:1.5rem;color:var(--text-primary);margin-bottom:0.5rem">You're subscribed!</h2>
+        <p style="color:var(--text-secondary);font-size:0.875rem;margin-bottom:1.5rem;line-height:1.6">
+          Your first Bloom Kit is being curated. It'll ship 2 days before your next predicted period. We'll notify you by email.
+        </p>
+        <div style="background:var(--blush);border-radius:var(--radius-md);padding:14px;margin-bottom:1.5rem">
+          <div style="font-size:0.8rem;color:var(--text-muted)">Next estimated dispatch</div>
+          <div style="font-weight:600;color:var(--text-primary);margin-top:3px">{{ next_period or 'Based on your next cycle' }}</div>
+        </div>
+        <button onclick="document.getElementById('subscribe-modal').style.display='none'" class="btn btn-primary" style="width:100%">
+          Done 🌸
+        </button>
+      </div>
+    </div>
+
+  </main>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Highlight kit options on select
+document.querySelectorAll('.kit-option').forEach(lbl => {
+  const input = lbl.querySelector('input');
+  const update = () => {
+    if (input.type === 'radio') {
+      lbl.closest('[id]')?.querySelectorAll('.kit-option').forEach(l => {
+        l.style.borderColor = 'var(--border)';
+        l.style.background  = 'white';
+      });
+    }
+    lbl.style.borderColor = input.checked ? 'var(--coral-light)' : 'var(--border)';
+    lbl.style.background  = input.checked ? 'var(--blush)'       : 'white';
+  };
+  input.addEventListener('change', update);
+  update();
+});
+
+// Plan selection
+let selectedPlan = 'bloom';
+function selectPlan(plan, price, btn) {
+  selectedPlan = plan;
+  document.querySelectorAll('[data-plan]').forEach(b => {
+    b.className = b.dataset.plan === plan ? 'btn btn-primary' : 'btn btn-ghost';
+    b.style.width = '100%'; b.style.justifyContent = 'center';
+    b.textContent = b.dataset.plan === plan ? '✓ Selected' : 'Select plan';
+  });
+  document.getElementById('cta-price').textContent = price;
+}
+
+function subscribe() {
+  const modal = document.getElementById('subscribe-modal');
+  modal.style.display = 'flex';
+}
+</script>
+{% endblock %}
