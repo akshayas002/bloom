@@ -19,20 +19,19 @@ def flash(request: Request, message: str, category: str = "info"):
 
 
 def get_flashes(request: Request):
-    flashes = request.session.pop("_flashes", [])
-    return flashes
+    return request.session.pop("_flashes", [])
 
 
 # ── Register ──────────────────────────────────────────────────────────────────
 @router.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
-    return templates.TemplateResponse("auth.html",
-        {"request": request, "mode": "register", "flashes": get_flashes(request)})
+    return templates.TemplateResponse(request, "auth.html",
+        {"mode": "register", "flashes": get_flashes(request)})
 
 
 @router.post("/register")
 async def register(
-    request: Request,
+    request:      Request,
     name:         str   = Form(...),
     email:        str   = Form(...),
     password:     str   = Form(...),
@@ -67,8 +66,8 @@ async def register(
 async def login_page(request: Request):
     if request.session.get("user_id"):
         return RedirectResponse("/dashboard", status_code=303)
-    return templates.TemplateResponse("auth.html",
-        {"request": request, "mode": "login", "flashes": get_flashes(request)})
+    return templates.TemplateResponse(request, "auth.html",
+        {"mode": "login", "flashes": get_flashes(request)})
 
 
 @router.post("/login")
@@ -78,7 +77,7 @@ async def login(
     password: str = Form(...),
     db: AsyncSession = Depends(get_db),
 ):
-    email = email.strip().lower()
+    email  = email.strip().lower()
     result = await db.execute(select(User).where(User.email == email))
     user   = result.scalars().first()
 
