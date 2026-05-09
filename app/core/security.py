@@ -1,20 +1,19 @@
-"""Password hashing and session token utilities."""
-import hashlib, secrets
+"""
+Password hashing with bcrypt.
+Replaces the original insecure SHA-256 implementation.
+bcrypt is deliberately slow — brute-force attacks are computationally infeasible.
+"""
+import bcrypt
 
 
 def hash_password(password: str) -> str:
-    salt = secrets.token_hex(16)
-    h    = hashlib.sha256((salt + password).encode()).hexdigest()
-    return f"{salt}:{h}"
+    """Hash a plaintext password. Returns a bcrypt hash string."""
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(stored: str, password: str) -> bool:
+    """Verify a plaintext password against a stored bcrypt hash."""
     try:
-        salt, h = stored.split(":", 1)
-        return hashlib.sha256((salt + password).encode()).hexdigest() == h
+        return bcrypt.checkpw(password.encode("utf-8"), stored.encode("utf-8"))
     except Exception:
         return False
-
-
-def make_session_token() -> str:
-    return secrets.token_urlsafe(32)

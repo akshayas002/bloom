@@ -1,167 +1,124 @@
-# 🌸 Bloom  — Menstrual Health AI Assistant
+# 🌸 Bloom — Menstrual Health Tracker
 
-A full-stack **FastAPI + PostgreSQL** web app for intelligent menstrual health tracking — with PCOS detection, irregular-cycle support, AI-powered chat, and an improved ML prediction model.
-
----
-
-## ✨ Features
-
-| Feature | Detail |
-|---|---|
-| ⚡ **FastAPI backend** | Async Python, auto-generated `/api/docs`, faster than Flask |
-| 🐘 **PostgreSQL support** | Production-ready DB with async SQLAlchemy ORM |
-| 🤖 **Data-aware AI chat** | Bloom AI knows your cycle phase, PCOS risk, symptoms, next prediction |
-| 🔮 **Improved ML model** | Stacked GB + RF → Ridge, 15 features, confidence intervals, irregular-specific sub-model |
-| 📊 **PCOS risk scoring** | Weighted multi-factor score with plain-English reasons |
-| 📅 **Irregular cycle support** | Wider confidence windows, irregular-specific model, adaptive prediction |
-| 🩺 **Confidence intervals** | 80% prediction window shown on dashboard and calendar |
-| 🌺 **Fertile window** | Dynamically computed per-user based on actual cycle length |
+FastAPI + async SQLAlchemy + Supabase/SQLite + Groq AI
 
 ---
 
-## 🏗️ Project Structure
+## Quick Start (Local Dev)
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Set up environment
+cp .env.example .env
+# Edit .env — set SECRET_KEY (see file for command)
+# Set GROQ_API_KEY if you want AI chat (free at console.groq.com)
+
+# 3. Create the database
+python scripts/db_init.py
+
+# 4. (Optional) seed sample data
+python scripts/db_seed.py
+# → priya@example.com / password123
+# → aisha@example.com / password123
+
+# 5. Run
+uvicorn main:app --reload
+# Open: http://localhost:8000
+```
+
+---
+
+## Production (Render + Supabase)
+
+1. Create a project at supabase.com
+2. Get your connection string: **Settings → Database → Session mode**
+3. Change `postgresql://` → `postgresql+asyncpg://`
+4. Set in Render environment variables:
+   ```
+   DATABASE_URL = postgresql+asyncpg://...
+   SECRET_KEY   = <random 64 char hex>
+   DEBUG        = false
+   GROQ_API_KEY = <your key>
+   ```
+5. Run migrations once: `DATABASE_URL=... alembic upgrade head`
+6. Push to GitHub → Render auto-deploys
+
+---
+
+## Project Structure
 
 ```
 bloom/
-├── main.py                        ← FastAPI app + middleware + lifespan
+├── main.py                        ← FastAPI app entry point
 ├── requirements.txt
-├── Procfile                       ← Railway/Heroku deploy
-├── .env.example
+├── alembic.ini                    ← Migration config
+├── .env.example                   ← Copy to .env
 │
 ├── app/
 │   ├── api/
-│   │   ├── auth.py                ← /register /login /logout
-│   │   ├── dashboard.py           ← /dashboard /log /logs /api/predict /api/chart /api/calendar
-│   │   └── chat.py                ← /api/chat (data-aware AI)
+│   │   ├── auth.py                ← Register / Login / Logout
+│   │   ├── chat.py                ← POST /api/chat
+│   │   └── dashboard.py           ← Dashboard + all routes
 │   ├── core/
-│   │   ├── config.py              ← Pydantic Settings (env vars)
-│   │   ├── database.py            ← Async SQLAlchemy engine + Base
-│   │   └── security.py            ← Password hashing
-│   ├── models/
-│   │   └── db_models.py           ← User, CycleLog, ChatMessage ORM models
-│   ├── schemas/
-│   │   └── schemas.py             ← Pydantic request/response schemas
+│   │   ├── config.py              ← Settings from .env
+│   │   ├── database.py            ← Async SQLAlchemy engine
+│   │   └── security.py            ← bcrypt hashing
+│   ├── models/db_models.py        ← ORM: User, CycleLog, ChatMessage
+│   ├── schemas/schemas.py         ← Pydantic validation
 │   ├── services/
-│   │   ├── cycle_service.py       ← Prediction, calendar, chart, AI context
-│   │   └── ai_service.py          ← Data-aware Bloom AI + smart fallback
-│   └── ml/
-│       ├── train_model.py         ← Re-train the ML model
-│       └── predictor.py           ← Prediction service (wraps trained model)
+│   │   ├── ai_service.py          ← Groq AI + fallback
+│   │   └── cycle_service.py       ← Predictions, charts, calendar
+│   ├── ml/
+│   │   ├── predictor.py           ← ML model + PCOS risk
+│   │   └── train_model.py         ← Model training script
+│   └── utils/utils.py             ← Shared flash + auth helpers
 │
-├── models_ml/
-│   ├── bloom_model.pkl            ← Trained stacked ensemble
-│   ├── cycle_model.pkl            ← Original model (backup)
-│   └── menstrual_cycle_dataset.csv
-│
-├── templates/
-│   ├── base.html                  ← Navbar + chatbot widget
-│   ├── auth.html                  ← Login & Register
-│   ├── dashboard.html             ← Full dashboard
-|   ├── kits.html                  ← Personalized kits 
-│   ├── log.html                   ← Daily log entry
-│   ├── logs.html                  ← History view
-│   └── 404.html
-│
-└── static/css/
-    └── bloom.css
+├── migrations/                    ← Alembic migrations
+├── scripts/
+│   ├── db_init.py                 ← Quick DB setup
+│   └── db_seed.py                 ← Dev seed data
+├── templates/                     ← Jinja2 HTML templates
+├── static/                        ← CSS, JS, images
+└── models_ml/                     ← bloom_model.pkl (gitignored)
 ```
 
 ---
 
-## 🚀 Quick Start (Local — SQLite, zero config)
+## API Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| GET/POST | `/register` | Register |
+| GET/POST | `/login` | Login |
+| GET | `/logout` | Logout |
+| GET | `/dashboard` | Main dashboard |
+| GET/POST | `/log` | Daily log |
+| GET | `/logs` | All logs |
+| POST | `/logs/delete/{id}` | Delete log |
+| GET | `/kits` | Kits page |
+| POST | `/api/chat` | AI chat |
+| POST | `/api/predict` | ML prediction |
+| GET | `/api/chart` | Chart data |
+| GET | `/api/calendar` | Calendar events |
+
+---
+
+## Train the ML Model
 
 ```bash
-cd bloom
-python -m venv venv
-source venv/bin/activate      # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-
-cp .env.example .env
-# Optionally add GROQ_API_KEY for full AI chat
-
-python main.py
-# → http://localhost:8000
-# → API docs: http://localhost:8000/api/docs
-```
-
----
-
-## 🐘 Switch to PostgreSQL
-
-1. Install Postgres and create a database:
-   ```sql
-   CREATE DATABASE bloom_db;
-   ```
-
-2. Install the async driver:
-   ```bash
-   pip install asyncpg
-   ```
-
-3. Update `.env`:
-   ```
-   DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/bloom_db
-   ```
-
-4. Restart — tables are auto-created on startup via `create_tables()`.
-
----
-
-## 🌐 Deploy to Railway (recommended — free tier)
-
-1. Push to GitHub
-2. [railway.app](https://railway.app) → New Project → from GitHub
-3. Add a **PostgreSQL** plugin → Railway auto-sets `DATABASE_URL`
-4. Add env vars: `SECRET_KEY`, `GROQ_API_KEY`
-5. Railway detects `Procfile` — you're live! 🎉
-
----
-
-## 🌐 Deploy to Render
-
-1. New Web Service → connect repo
-2. Build command: `pip install -r requirements.txt`
-3. Start command: `gunicorn main:app -w 2 -k uvicorn.workers.UvicornWorker`
-4. Add env vars in dashboard
-
----
-
-## 🤖 Re-train the ML Model
-
-```bash
+# Place menstrual_cycle_dataset.csv in models_ml/
 python -m app.ml.train_model
-# or
-python app/ml/train_model.py
+# Saves models_ml/bloom_model.pkl
 ```
-
-Outputs `models_ml/bloom_model.pkl` with:
-- **Stacked ensemble**: GradientBoosting + RandomForest → Ridge meta-learner
-- **15 features** including cycle history, variation, BMI, irregularity flags
-- **Quantile models** for 10th/90th percentile confidence intervals
-- **Irregular sub-model** trained specifically on cycles >35 days
+Without the model, heuristic fallback runs automatically.
 
 ---
 
-## 🤖 AI Chatbot
+## Security Notes
 
-Bloom uses **Groq LLaMA-3 8B** and injects your actual data into every prompt:
-- Current cycle phase and day
-- Next period prediction with confidence window
-- PCOS risk level and reasons
-- Most frequent recent symptoms
-- Dominant mood this month
-
-Get a free key at [console.groq.com](https://console.groq.com) and add it to `.env`.
-Without a key, Bloom falls back to rich personalised rule-based responses.
-
----
-
-## 🎨 Design System
-
-| Token | Value |
-|---|---|
-| Coral primary | `#FF6F61` |
-| Mauve accent | `#C08081` |
-| Blush background | `#fef6f6` |
-| Heading font | Quicksand |
-| Body font | Poppins |
+- Passwords hashed with **bcrypt** (not SHA-256)
+- `SECRET_KEY` must be set — app refuses to start in production without it
+- `.env` and `models_ml/bloom_model.pkl` are gitignored
+- All DB deletes are CASCADE-safe (delete user → deletes all logs + messages)
