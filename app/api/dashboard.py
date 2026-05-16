@@ -202,7 +202,7 @@ async def log_submit(
             sleep=sleep, exercise=exercise, notes=notes,
             cycle_day=cycle_day, days_since_last=days_since,
         )
-        db.add(log_obj)
+        db.add(log_obj))
 
     await db.commit()
     flash(request, "Log saved! 🌸", "success")
