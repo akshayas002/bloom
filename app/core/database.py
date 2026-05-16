@@ -1,6 +1,6 @@
 """
 Async SQLAlchemy database setup.
-Supports both SQLite (local dev) and PostgreSQL (production).
+Works with SQLite (local dev) and PostgreSQL / Supabase (production).
 """
 
 import os
@@ -11,7 +11,6 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-# Ensure instance dir exists for SQLite
 if settings.DATABASE_URL.startswith("sqlite"):
     os.makedirs("instance", exist_ok=True)
 
@@ -19,7 +18,6 @@ engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,
     pool_pre_ping=True,
-    # SQLite needs check_same_thread=False; PostgreSQL ignores this
     connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {},
 )
 
@@ -48,6 +46,6 @@ async def get_db() -> AsyncSession:
 
 
 async def create_tables():
-    """Create all tables (runs on startup)."""
+    """Create all tables on startup (idempotent — safe to call every boot)."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
