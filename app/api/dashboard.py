@@ -1,15 +1,7 @@
-"""
-Dashboard, log, predict, chart, calendar and kits routes.
-
-Fixes vs original:
-  - flash() / get_current_user() imported from shared utils (not redefined here)
-  - PredictRequest schema now actually wraps and validates /api/predict input
-  - symptoms always a Python list (SymptomList TypeDecorator) — no json.loads hedges
-  - chart query moved to cycle_service (single query, not 6-query loop)
-"""
+"""Dashboard, log, predict, chart, calendar and kits routes."""
 
 import json
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Request, Form
@@ -20,6 +12,7 @@ from sqlalchemy import select, and_, delete
 
 from app.core.database import get_db
 from app.models.db_models import User, CycleLog
+from app.schemas.schemas import PredictRequest
 from app.services.cycle_service import (
     get_prediction, build_calendar_events, build_chart_data, build_user_context,
 )
@@ -46,6 +39,8 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     if not user:
         return RedirectResponse("/login", status_code=303)
 
+    # BUG FIX: cal_events and chart_data must be inside the try block
+    # so the fallback values are only used when an exception actually occurs
     try:
         prediction = await get_prediction(db, user)
         cal_events = await build_calendar_events(db, user, prediction)
@@ -53,20 +48,21 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     except Exception as e:
         print(f"Prediction error: {e}")
         prediction = {
-        "days_until": 14, "next_period_date": "N/A",
-        "cycle_day": 1, "cycle_phase": "follicular",
-        "progress": 0, "pcos_risk_level": "low",
-        "pcos_risk_score": 0.0, "pcos_reasons": [],
-        "is_irregular": False, "confidence_lo": 12,
-        "confidence_hi": 16, "fertile_start": "N/A",
-        "fertile_end": "N/A",
-    }
-    cal_events = []
-    chart_data = {
-        "labels": [], "cramps": [], "headache": [],
-        "fatigue": [], "bloating": [], "nausea": [],
-        "mood": [], "flow": []
-    }
+            "days_until": 14, "next_period_date": "N/A",
+            "cycle_day": 1, "cycle_phase": "follicular",
+            "progress": 0, "pcos_risk_level": "low",
+            "pcos_risk_score": 0.0, "pcos_reasons": [],
+            "is_irregular": False, "confidence_lo": 12,
+            "confidence_hi": 16, "fertile_start": "N/A",
+            "fertile_end": "N/A",
+        }
+        cal_events = []
+        chart_data = {
+            "labels": [], "cramps": [], "headache": [],
+            "fatigue": [], "bloating": [], "nausea": [],
+            "mood": [], "flow": [],
+        }
+
     result = await db.execute(
         select(CycleLog)
         .where(CycleLog.user_id == user.id)
@@ -75,7 +71,6 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     )
     logs = result.scalars().all()
 
-    # symptoms is always a list — no isinstance hedge needed
     recent_logs = [
         {
             "id":             l.id,
@@ -162,7 +157,6 @@ async def log_submit(
     symptoms = list(form.getlist("symptoms"))
     ld       = datetime.strptime(log_date, "%Y-%m-%d").date()
 
-    # Calculate cycle_day from most recent period log before this date
     result = await db.execute(
         select(CycleLog).where(and_(
             CycleLog.user_id == user.id,
@@ -178,7 +172,6 @@ async def log_submit(
         days_since = None
         cycle_day  = 1
 
-    # Upsert: update if a log already exists for this date
     existing = await db.execute(
         select(CycleLog).where(and_(CycleLog.user_id == user.id, CycleLog.log_date == ld))
     )
@@ -195,14 +188,22 @@ async def log_submit(
         log_obj.cycle_day       = cycle_day
         log_obj.days_since_last = days_since
     else:
-        db.add(CycleLog(
-            user_id=user.id, log_date=ld,
-            flow_intensity=flow_intensity, mood=mood,
-            symptoms=symptoms, stress=stress,
-            sleep=sleep, exercise=exercise, notes=notes,
-            cycle_day=cycle_day, days_since_last=days_since,
+        # BUG FIX: was garbled as db.add(CycleLog(...)\n db.add(log_obj))
+        # with a missing closing paren — fixed to a clean single db.add()
+        new_log = CycleLog(
+            user_id=user.id,
+            log_date=ld,
+            flow_intensity=flow_intensity,
+            mood=mood,
+            symptoms=symptoms,
+            stress=stress,
+            sleep=sleep,
+            exercise=exercise,
+            notes=notes,
+            cycle_day=cycle_day,
+            days_since_last=days_since,
         )
-        db.add(log_obj))
+        db.add(new_log)
 
     await db.commit()
     flash(request, "Log saved! 🌸", "success")
@@ -222,9 +223,6 @@ async def all_logs(request: Request, db: AsyncSession = Depends(get_db)):
         .where(CycleLog.user_id == user.id)
         .order_by(CycleLog.log_date.desc())
     )
-    rows = result.scalars().all()
-
-    # symptoms is always a list — SymptomList TypeDecorator handles deserialization
     logs = [
         {
             "id":             l.id,
@@ -238,7 +236,7 @@ async def all_logs(request: Request, db: AsyncSession = Depends(get_db)):
             "notes":          l.notes,
             "cycle_day":      l.cycle_day,
         }
-        for l in rows
+        for l in result.scalars().all()
     ]
 
     return templates.TemplateResponse(request, "logs.html", {
@@ -270,9 +268,9 @@ async def kits_page(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=303)
-    prediction  = await get_prediction(db, user)
-    return templates.TemplateResponse("kits.html", {
-        "request":     request,
+    prediction = await get_prediction(db, user)
+    # BUG FIX: was using old-style TemplateResponse with "request" in the dict
+    return templates.TemplateResponse(request, "kits.html", {
         "user":        user,
         "flashes":     get_flashes(request),
         "next_period": prediction.get("next_period_date", ""),
@@ -289,7 +287,6 @@ async def predict_api(request: Request, db: AsyncSession = Depends(get_db)):
 
     raw = await request.json()
 
-    # PredictRequest now actually validates the input (was missing in original)
     try:
         data = PredictRequest(**raw)
     except Exception as e:
@@ -312,9 +309,11 @@ async def predict_api(request: Request, db: AsyncSession = Depends(get_db)):
         symptoms        = data.symptoms,
     )
     pcos = result["pcos_risk_level"]
-    msg  = (f"Your next period is predicted in {result['days_until']} days "
-            f"({result['next_period_date']}). "
-            f"80% confidence window: {result['confidence_lo']}–{result['confidence_hi']} days.")
+    msg  = (
+        f"Your next period is predicted in {result['days_until']} days "
+        f"({result['next_period_date']}). "
+        f"80% confidence window: {result['confidence_lo']}–{result['confidence_hi']} days."
+    )
     if result["is_irregular"]:
         msg += " ⚠️ Irregular cycle detected — keep logging for accuracy."
     if pcos in ("moderate", "high"):
