@@ -22,7 +22,6 @@ def get_flashes(request: Request):
     return request.session.pop("_flashes", [])
 
 
-# ── Register ──────────────────────────────────────────────────────────────────
 @router.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
     return templates.TemplateResponse(request, "auth.html",
@@ -47,10 +46,12 @@ async def register(
         flash(request, "Email already registered.", "error")
         return RedirectResponse("/register", status_code=303)
 
-    user = User(name=name.strip(), email=email,
-                password=hash_password(password),
-                age=age, avg_cycle=avg_cycle,
-                bmi=bmi, is_irregular=is_irregular)
+    user = User(
+        name=name.strip(), email=email,
+        password=hash_password(password),
+        age=age, avg_cycle=avg_cycle,
+        bmi=bmi, is_irregular=is_irregular,
+    )
     db.add(user)
     await db.commit()
     await db.refresh(user)
@@ -61,7 +62,6 @@ async def register(
     return RedirectResponse("/dashboard", status_code=303)
 
 
-# ── Login ─────────────────────────────────────────────────────────────────────
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     if request.session.get("user_id"):
@@ -91,7 +91,6 @@ async def login(
     return RedirectResponse("/dashboard", status_code=303)
 
 
-# ── Logout ────────────────────────────────────────────────────────────────────
 @router.get("/logout")
 async def logout(request: Request):
     request.session.clear()

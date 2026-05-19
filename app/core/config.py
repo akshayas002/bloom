@@ -1,8 +1,8 @@
 """Application configuration via environment variables."""
 import os
+import sys
 from functools import lru_cache
 
-# Load .env file if python-dotenv is available
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -28,7 +28,6 @@ try:
             extra = "ignore"
 
 except ImportError:
-    # Fallback: plain dataclass reading from os.environ
     class Settings:  # type: ignore
         SECRET_KEY   = os.environ.get("SECRET_KEY",   "bloom-change-me-in-production")
         APP_NAME     = os.environ.get("APP_NAME",     "Bloom")
@@ -42,4 +41,14 @@ except ImportError:
 
 @lru_cache()
 def get_settings() -> Settings:
-    return Settings()
+    s = Settings()
+    # Refuse to start in production with the default key
+    if not s.DEBUG and s.SECRET_KEY == "bloom-change-me-in-production":
+        print(
+            "\n🚨  FATAL: SECRET_KEY is still the default value.\n"
+            "    Set a strong random key in your .env or Render environment variables:\n"
+            "      python -c \"import secrets; print(secrets.token_hex(32))\"\n",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    return s
