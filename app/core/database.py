@@ -1,6 +1,8 @@
 """
 Async SQLAlchemy database setup.
 Works with SQLite (local dev) and PostgreSQL / Supabase (production).
+
+Fix: auto-converts Render/Supabase postgres:// URLs to postgresql+asyncpg://
 """
 
 import os
@@ -11,14 +13,23 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-if settings.DATABASE_URL.startswith("sqlite"):
+# ── Fix Render / Supabase DATABASE_URL ───────────────────────────────────────
+# Render provides "postgres://" or bare "postgresql://"
+# asyncpg requires "postgresql+asyncpg://"
+_url = settings.DATABASE_URL
+if _url.startswith("postgres://"):
+    _url = _url.replace("postgres://", "postgresql+asyncpg://", 1)
+elif _url.startswith("postgresql://") and "+asyncpg" not in _url:
+    _url = _url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+if _url.startswith("sqlite"):
     os.makedirs("instance", exist_ok=True)
 
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    _url,
     echo=settings.DEBUG,
     pool_pre_ping=True,
-    connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {},
+    connect_args={"check_same_thread": False} if "sqlite" in _url else {},
 )
 
 AsyncSessionLocal = async_sessionmaker(
@@ -46,6 +57,5 @@ async def get_db() -> AsyncSession:
 
 
 async def create_tables():
-    """Create all tables on startup (idempotent — safe to call every boot)."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
