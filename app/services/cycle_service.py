@@ -81,7 +81,6 @@ async def get_prediction(db: AsyncSession, user: User) -> dict:
 
     return ml_predict(
         age             = float(user.age or 25),
-        cycle_length    = float(user.avg_cycle or 28),
         days_since_last = float(days_since),
         mood=mood, flow=flow, symptom=symptom,
         stress=stress, sleep=sleep, exercise=exercise,

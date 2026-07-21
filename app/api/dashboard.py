@@ -295,7 +295,6 @@ async def predict_api(request: Request, db: AsyncSession = Depends(get_db)):
     from app.ml.predictor import predict as ml_predict
     result = ml_predict(
         age             = float(data.age             or user.age or 25),
-        cycle_length    = float(data.cycle_length    or user.avg_cycle or 28),
         days_since_last = float(data.days_since_last or 14),
         mood            = data.mood,
         flow            = data.flow,
@@ -304,7 +303,10 @@ async def predict_api(request: Request, db: AsyncSession = Depends(get_db)):
         sleep           = data.sleep,
         exercise        = data.exercise,
         bmi             = float(data.bmi             or user.bmi or 22.5),
-        avg_previous    = float(data.avg_previous    or user.avg_cycle or 28),
+        # cycle_length is a legacy field name — treated as a fallback
+        # historical average, never as the (unknowable mid-cycle) current
+        # cycle's own length.
+        avg_previous    = float(data.avg_previous or data.cycle_length or user.avg_cycle or 28),
         cycle_variation = float(data.cycle_variation),
         symptoms        = data.symptoms,
     )
