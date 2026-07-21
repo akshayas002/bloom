@@ -82,6 +82,9 @@ class LogOut(BaseModel):
 # ── Predict ───────────────────────────────────────────────────────────────────
 class PredictRequest(BaseModel):
     age:             Optional[float] = None
+    # Legacy field name kept for API back-compat with any existing callers;
+    # it's treated as a fallback for avg_previous (a historical average),
+    # never as a "current cycle length" — that value can't be known mid-cycle.
     cycle_length:    Optional[float] = None
     days_since_last: Optional[float] = None
     mood:            str   = "neutral"
