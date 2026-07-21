@@ -9,17 +9,10 @@ from sqlalchemy import select
 from app.core.database import get_db
 from app.core.security import hash_password, verify_password
 from app.models.db_models import User
+from app.utils.utils import flash, get_flashes
 
 router    = APIRouter()
 templates = Jinja2Templates(directory="templates")
-
-
-def flash(request: Request, message: str, category: str = "info"):
-    request.session.setdefault("_flashes", []).append((category, message))
-
-
-def get_flashes(request: Request):
-    return request.session.pop("_flashes", [])
 
 
 @router.get("/register", response_class=HTMLResponse)
