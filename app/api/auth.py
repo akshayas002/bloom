@@ -9,7 +9,7 @@ from sqlalchemy import select
 from app.core.database import get_db
 from app.core.security import hash_password, verify_password
 from app.models.db_models import User
-from app.utils.utils import flash, get_flashes   # FIX: import from shared utils, not redefined here
+from app.utils.utils import flash, get_flashes
 
 router    = APIRouter()
 templates = Jinja2Templates(directory="templates")
