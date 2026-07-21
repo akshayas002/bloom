@@ -71,8 +71,10 @@ bloom/
 │   │   ├── ai_service.py          ← Groq AI + fallback
 │   │   └── cycle_service.py       ← Predictions, charts, calendar
 │   ├── ml/
+│   │   ├── feature_spec.py        ← Single source of truth: encodings + feature order
 │   │   ├── predictor.py           ← ML model + PCOS risk
-│   │   └── train_model.py         ← Model training script
+│   │   ├── train_model.py         ← Model training script (grouped validation)
+│   │   └── generate_dataset.py    ← Synthetic training data generator
 │   └── utils/utils.py             ← Shared flash + auth helpers
 │
 ├── migrations/                    ← Alembic migrations
@@ -81,7 +83,7 @@ bloom/
 │   └── db_seed.py                 ← Dev seed data
 ├── templates/                     ← Jinja2 HTML templates
 ├── static/                        ← CSS, JS, images
-└── models_ml/                     ← bloom_model.pkl (gitignored)
+└── models_ml/                     ← bloom_model.pkl (gitignored), ML_NOTES.md
 ```
 
 ---
@@ -108,11 +110,24 @@ bloom/
 ## Train the ML Model
 
 ```bash
-# Place menstrual_cycle_dataset.csv in models_ml/
+# Option A — use your own data: place menstrual_cycle_dataset.csv in models_ml/
+#   (see app/ml/train_model.py -> load_and_engineer() for the expected schema)
+
+# Option B — no dataset handy: generate a documented synthetic one
+python -m app.ml.generate_dataset
+#   -> models_ml/menstrual_cycle_dataset.csv
+
 python -m app.ml.train_model
-# Saves models_ml/bloom_model.pkl
+# Saves models_ml/bloom_model.pkl, prints grouped-CV and held-out-user MAE
 ```
 Without the model, heuristic fallback runs automatically.
+
+**Note:** v1 of this model had a data-leakage bug (the current cycle's own
+completed length was used as a training feature, which isn't knowable until
+the cycle is over — see `models_ml/ML_NOTES.md` for the full diagnosis,
+the numbers that exposed it, and the fix). `app/ml/feature_spec.py` is now
+the single source of truth for the feature contract used by both training
+and inference.
 
 ---
 
