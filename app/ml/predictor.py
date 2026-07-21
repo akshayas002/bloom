@@ -66,24 +66,29 @@ def score_pcos_risk(
         score += 0.15; reasons.append(f"Slightly long average cycle ({avg_cycle_length:.0f} days)")
 
     if cycle_variation > 7:
-        score += 0.25; reasons.append(f"High cycle variation (±{cycle_variation:.1f} days)")
+        score += 0.25
+        reasons.append(f"High cycle variation (±{cycle_variation:.1f} days)")
     elif cycle_variation > 4:
         score += 0.10
 
     if bmi > 30:
-        score += 0.15; reasons.append(f"BMI {bmi:.1f} (obesity is a PCOS risk factor)")
+        score += 0.15
+        reasons.append(f"BMI {bmi:.1f} (obesity is a PCOS risk factor)")
     elif bmi < 17:
-        score += 0.10; reasons.append(f"Low BMI {bmi:.1f} can disrupt cycles")
+        score += 0.10
+        reasons.append(f"Low BMI {bmi:.1f} can disrupt cycles")
 
     pcos_symptoms = {"acne", "hair loss", "fatigue", "bloating", "mood swings"}
     matched = pcos_symptoms & set(symptoms)
     if len(matched) >= 2:
-        score += 0.15; reasons.append(f"Multiple PCOS-linked symptoms: {', '.join(matched)}")
+        score += 0.15
+        reasons.append(f"Multiple PCOS-linked symptoms: {', '.join(sorted(matched))}")
     elif len(matched) == 1:
         score += 0.05
 
     if stress == "high":
-        score += 0.10; reasons.append("Chronic high stress disrupts the HPG axis")
+        score += 0.10
+        reasons.append("Chronic high stress disrupts the HPG axis")
 
     score = min(score, 1.0)
     level = "high" if score >= 0.5 else ("moderate" if score >= 0.25 else "low")
@@ -94,8 +99,8 @@ def predict(
     age: float,
     days_since_last: float,
     mood: str = "neutral",
-    flow: str = "medium",
-    symptom: str = "cramps",
+    flow: str = "none",
+    symptom: str = "none",
     stress: str = "medium",
     sleep: str = "normal",
     exercise: str = "okay",
@@ -135,7 +140,7 @@ def predict(
         hi   = min(DAYS_UNTIL_MAX, pred + 5)
         mae  = 5.0
 
-    days_until = int(round(pred))
+    days_until = max(0, int(round(pred)))
     next_date  = date.today() + timedelta(days=days_until)
 
     # Fertile window: ovulation ≈ avg_previous - 14 from last period start
@@ -161,18 +166,41 @@ def predict(
     else:
         phase = "luteal"
 
+    # ── Fertile window ────────────────────────────────────────────────────────
+    # Ovulation ≈ next_date minus 14 days
+    # Fertile window = 5 days before ovulation through 1 day after
+    predicted_ovulation = next_date - timedelta(days=14)
+    fertile_start_dt    = predicted_ovulation - timedelta(days=5)
+    fertile_end_dt      = predicted_ovulation + timedelta(days=1)
+
+    today = date.today()
+    # Only show fertile window if it's in the future and makes sense
+    if fertile_start_dt < fertile_end_dt and fertile_end_dt >= today:
+        fertile_start = max(fertile_start_dt, today).isoformat()
+        fertile_end   = fertile_end_dt.isoformat()
+    else:
+        fertile_start = None
+        fertile_end   = None
+
+    # ── PCOS risk ─────────────────────────────────────────────────────────────
+    pcos_level, pcos_score, pcos_reasons = score_pcos_risk(
+        cycle_length, cycle_variation,
+        avg_previous or cycle_length,
+        bmi, symptoms or [], stress,
+    )
+
     return {
-        "days_until":       days_until,
-        "next_period_date": next_date.isoformat(),
-        "confidence_lo":    int(round(lo)),
-        "confidence_hi":    int(round(hi)),
-        "mae_days":         mae,
-        "is_irregular":     is_irregular,
-        "cycle_phase":      phase,
-        "cycle_day":        cycle_day,
-        "fertile_start":    fertile_start.isoformat(),
-        "fertile_end":      fertile_end.isoformat(),
-        "pcos_risk_level":  pcos_level,
-        "pcos_risk_score":  pcos_score,
-        "pcos_reasons":     pcos_reasons,
+        "days_until":        days_until,
+        "next_period_date":  next_date.isoformat(),
+        "confidence_lo":     max(0, int(round(lo))),
+        "confidence_hi":     int(round(hi)),
+        "mae_days":          mae,
+        "is_irregular":      is_irregular,
+        "cycle_phase":       phase,
+        "cycle_day":         cycle_day,
+        "fertile_start":     fertile_start,   # None when not meaningful
+        "fertile_end":       fertile_end,     # None when not meaningful
+        "pcos_risk_level":   pcos_level,
+        "pcos_risk_score":   pcos_score,
+        "pcos_reasons":      pcos_reasons,
     }
